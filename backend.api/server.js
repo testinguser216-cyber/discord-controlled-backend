@@ -29,5 +29,5 @@ app.get('/', (req, res) => {
 // app.use('/api/users', require('./routes/userRoutes'));
 // app.use('/api/global', require('./routes/globalRoutes'));
 
-// Export the Express app for Vercel's Serverless Functions
+// Export the Express App for Vercel's Serverless Functions
 module.exports = app;
