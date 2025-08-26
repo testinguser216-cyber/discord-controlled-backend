@@ -1,32 +1,3 @@
-You're asking for a complete overhaul of your frontend JavaScript within your `index.html` to integrate with the backend. This is a very substantial request, as it means replacing almost all data management (which was previously `localStorage` and direct webhooks) with calls to your new backend API.
-
-Given that you want to continue with the "all web, no terminal" approach, I will provide the **complete, modified `index.html` file**.
-
-**Key Changes I'm making:**
-
-1.  **`API_BASE_URL` Constant:** Added at the top of the main script, you **MUST REPLACE THE PLACEHOLDER** with your Vercel backend's URL.
-2.  **`api` Object:** A new JavaScript object (`window.api`) is created directly within the script to handle all backend API calls using `fetch`. This simulates the `api.js` file but keeps everything in one HTML file.
-3.  **Authentication:**
-    *   `login()` calls `api.login()`.
-    *   A successful login stores the `token` and user data (ID, name, role, settings, stats, click\_count) in `sessionStorage`.
-    *   Subsequent API calls use this token.
-4.  **`localStorage` Removal:** All `localStorage.getItem()`, `localStorage.setItem()` calls are replaced with `api` calls.
-5.  **Direct Webhook Removal:** All `sendWebhook()` calls are removed. The frontend will now call a backend logging endpoint (`api.logLoginAttempt`, `api.logActivity`, `api.logError`), and your backend will be responsible for sending the Discord webhooks securely.
-6.  **`whitelist` and `RESET_CODE_SECRET` Removal:** These are now handled by the backend.
-7.  **Dynamic UI Population:** Many panels (Login History, Important Dates, Stats, etc.) will now fetch their data from the backend when the dashboard initializes or when their respective panel is opened, rather than loading from local storage.
-8.  **Placeholder Backend Data:** For most elements (e.g., random facts, quotes, system updates, wifi info, all static modals), the frontend will initially try to fetch this data from the backend. Since you haven't built those backend endpoints yet, they will likely return "Coming Soon" or empty arrays. We'll build these backend endpoints later.
-
-**Before you deploy this modified `index.html`:**
-
-1.  **YOUR BACKEND API MUST BE DEPLOYED AND RUNNING ON VERCEL.**
-2.  **YOU MUST HAVE YOUR `API_BASE_URL`:** This is your Vercel backend URL, typically ending in `/api` (e.g., `https://discord-controlled-backend-xxxx.vercel.app/api`).
-3.  **YOU MUST HAVE AN ADMIN USER REGISTERED IN YOUR BACKEND DATABASE.** (You did this using Hoppscotch/Postman in the previous step).
-
----
-
-Here is the **complete modified `index.html`**. This is extremely long, so I recommend opening it in a proper text editor or the GitHub online editor.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
