@@ -1,6 +1,5 @@
 // backend-api/server.js
 // Load environment variables for local testing (Vercel handles them directly)
-// This 'if' block ensures dotenv is only loaded if not in a Vercel production environment.
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     require('dotenv').config();
 }
@@ -10,7 +9,7 @@ const cors = require('cors');
 const connectDB = require('./config/db'); // Import the DB connection function
 
 // --- Connect to MongoDB ---
-connectDB(); // Call the function to connect to the database
+connectDB();
 
 const app = express();
 
@@ -18,16 +17,20 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Basic Route for testing API status
+// --- Import Routes ---
+const authRoutes = require('./routes/authRoutes');
+// const userRoutes = require('./routes/userRoutes'); // Will create later
+// const globalRoutes = require('./routes/globalRoutes'); // Will create later
+
+// --- Basic Route for testing API status ---
 app.get('/', (req, res) => {
-    // Note: The `console.log` from connectDB will appear in Vercel logs.
-    res.send('Backend API is running on Vercel and attempting MongoDB connection!');
+    res.send('Backend API is running on Vercel!');
 });
 
-// Placeholder for future API routes
-// app.use('/api/auth', require('./routes/authRoutes'));
-// app.use('/api/users', require('./routes/userRoutes'));
-// app.use('/api/global', require('./routes/globalRoutes'));
+// --- API Route Mounting ---
+app.use('/api/auth', authRoutes); // e.g., /api/auth/register, /api/auth/login
+// app.use('/api/users', userRoutes); // Mount User routes here later
+// app.use('/api/global', globalRoutes); // Mount Global routes here later
 
-// Export the Express App for Vercel's Serverless Functions
+// Export the Express app for Vercel's Serverless Functions
 module.exports = app;
