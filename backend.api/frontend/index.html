@@ -1,3 +1,32 @@
+You're asking for a complete overhaul of your frontend JavaScript within your `index.html` to integrate with the backend. This is a very substantial request, as it means replacing almost all data management (which was previously `localStorage` and direct webhooks) with calls to your new backend API.
+
+Given that you want to continue with the "all web, no terminal" approach, I will provide the **complete, modified `index.html` file**.
+
+**Key Changes I'm making:**
+
+1.  **`API_BASE_URL` Constant:** Added at the top of the main script, you **MUST REPLACE THE PLACEHOLDER** with your Vercel backend's URL.
+2.  **`api` Object:** A new JavaScript object (`window.api`) is created directly within the script to handle all backend API calls using `fetch`. This simulates the `api.js` file but keeps everything in one HTML file.
+3.  **Authentication:**
+    *   `login()` calls `api.login()`.
+    *   A successful login stores the `token` and user data (ID, name, role, settings, stats, click\_count) in `sessionStorage`.
+    *   Subsequent API calls use this token.
+4.  **`localStorage` Removal:** All `localStorage.getItem()`, `localStorage.setItem()` calls are replaced with `api` calls.
+5.  **Direct Webhook Removal:** All `sendWebhook()` calls are removed. The frontend will now call a backend logging endpoint (`api.logLoginAttempt`, `api.logActivity`, `api.logError`), and your backend will be responsible for sending the Discord webhooks securely.
+6.  **`whitelist` and `RESET_CODE_SECRET` Removal:** These are now handled by the backend.
+7.  **Dynamic UI Population:** Many panels (Login History, Important Dates, Stats, etc.) will now fetch their data from the backend when the dashboard initializes or when their respective panel is opened, rather than loading from local storage.
+8.  **Placeholder Backend Data:** For most elements (e.g., random facts, quotes, system updates, wifi info, all static modals), the frontend will initially try to fetch this data from the backend. Since you haven't built those backend endpoints yet, they will likely return "Coming Soon" or empty arrays. We'll build these backend endpoints later.
+
+**Before you deploy this modified `index.html`:**
+
+1.  **YOUR BACKEND API MUST BE DEPLOYED AND RUNNING ON VERCEL.**
+2.  **YOU MUST HAVE YOUR `API_BASE_URL`:** This is your Vercel backend URL, typically ending in `/api` (e.g., `https://discord-controlled-backend-xxxx.vercel.app/api`).
+3.  **YOU MUST HAVE AN ADMIN USER REGISTERED IN YOUR BACKEND DATABASE.** (You did this using Hoppscotch/Postman in the previous step).
+
+---
+
+Here is the **complete modified `index.html`**. This is extremely long, so I recommend opening it in a proper text editor or the GitHub online editor.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -147,526 +176,6 @@
     }
 
     body.light-theme .notification {
-      background: var(--secondary-bg);
-      border: 2px solid var(--success-color); /* Accent border to signify its status */
-      color: var(--text-primary); /* Should contrast well with bg */
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* Lighter shadow */
-    }
-
-    body.light-theme .settings-content {
-      background: var(--secondary-bg);
-      border-color: var(--accent-color);
-      color: var(--text-primary);
-    }
-    body.light-theme .settings-content h2, body.light-theme .settings-content h3 {
-      color: var(--accent-color);
-    }
-    body.light-theme .setting-item {
-      background: var(--primary-bg);
-      border-color: var(--border-color);
-    }
-    body.light-theme .tool-btn, body.light-theme .timer-controls .tool-btn {
-      background: var(--accent-color);
-      color: white;
-    }
-    body.light-theme .tool-btn:hover, body.light-theme .tool-btn.active, body.light-theme .timer-controls .tool-btn:hover {
-      background: var(--accent-secondary);
-    }
-    body.light-theme #drawingCanvas {
-      background: #f0f0f0; /* Ensure white canvas in light mode */
-    }
-    body.light-theme #textNotes {
-      background: var(--primary-bg);
-      color: var(--text-primary);
-    }
-    body.light-theme .calculator {
-      background: var(--primary-bg);
-    }
-    body.light-theme .calc-display {
-      background: var(--secondary-bg);
-      border-color: var(--border-color);
-      color: var(--accent-color);
-    }
-    body.light-theme .calc-buttons {
-        border-color: var(--border-color);
-    }
-    body.light-theme .calc-btn {
-      background: var(--secondary-bg);
-      color: var(--text-primary);
-    }
-    body.light-theme .calc-btn:hover {
-      background: var(--accent-color);
-    }
-    body.light-theme .calc-btn.operator {
-      background: var(--accent-color);
-    }
-    body.light-theme .calc-btn.equals {
-      background: var(--success-color);
-      color: black;
-    }
-    body.light-theme .media-input {
-      background: var(--secondary-bg);
-      border-color: var(--border-color);
-      color: var(--text-primary);
-    }
-    body.light-theme .media-frame {
-      background: var(--secondary-bg);
-    }
-    body.light-theme .stat-item {
-      background: var(--primary-bg);
-      border-color: var(--border-color);
-    }
-    body.light-theme .keybind-input {
-      background: var(--secondary-bg);
-      border-color: var(--border-color);
-      color: var(--text-primary);
-    }
-    /* Light theme specific styles for new elements */
-    body.light-theme .important-date-input, 
-    body.light-theme .important-date-event-input,
-    body.light-theme .important-date-item,
-    body.light-theme #randomFact,
-    body.light-theme #dailyQuote,
-    body.light-theme .error-log-entry,
-    body.light-theme .announcement-bar,
-    body.light-theme .reset-popup .reset-field { /* Added announcement-bar and reset elements for light theme */
-        background-color: var(--primary-bg) !important; /* Use !important to ensure override */
-        color: var(--text-primary) !important;
-        border-color: var(--border-color) !important;
-    }
-    body.light-theme .important-date-item {
-        border-left-color: var(--accent-secondary) !important;
-    }
-    body.light-theme .click-button,
-    body.light-theme .reset-popup button { /* Added reset button for light theme */
-        background: var(--accent-color) !important;
-        color: white !important;
-    }
-    body.light-theme .click-button:hover,
-    body.light-theme .reset-popup button:hover { /* Added reset button hover for light theme */
-        background: var(--accent-secondary) !important;
-    }
-    body.light-theme .announcement-content { /* Added announcement-content for light theme */
-        color: var(--accent-color) !important;
-    }
-    body.light-theme .reset-popup {
-      background: rgba(255, 255, 255, 0.98) !important; /* Lighter background for popup */
-      border-color: var(--accent-color) !important;
-      box-shadow: 0 0 30px rgba(0, 123, 255, 0.3) !important;
-    }
-    body.light-theme .reset-popup p {
-      color: var(--text-primary) !important;
-    }
-
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Roboto', sans-serif;
-      background: var(--primary-bg);
-      color: var(--text-primary);
-      overflow-x: hidden;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    /* Initialization Screen */
-    .init-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: radial-gradient(circle at center, #1a1a2e, #16213e, #0f0f0f);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-
-    .rotating-cube {
-      width: 80px;
-      height: 80px;
-      position: relative;
-      transform-style: preserve-3d;
-      animation: rotateCube 2s infinite linear;
-      margin-bottom: 30px;
-    }
-
-    .cube-face {
-      position: absolute;
-      width: 80px;
-      height: 80px;
-      background: linear-gradient(45deg, var(--accent-color), var(--accent-secondary));
-      border: 2px solid #fff;
-      opacity: 0.8;
-    }
-
-    .cube-face.front { transform: rotateY(0deg) translateZ(40px); }
-    .cube-face.back { transform: rotateY(180deg) translateZ(40px); }
-    .cube-face.right { transform: rotateY(90deg) translateZ(40px); }
-    .cube-face.left { transform: rotateY(-90deg) translateZ(40px); }
-    .cube-face.top { transform: rotateX(90deg) translateZ(40px); }
-    .cube-face.bottom { transform: rotateX(-90deg) translateZ(40px); }
-
-    @keyframes rotateCube {
-      0% { transform: rotateX(0deg) rotateY(0deg); }
-      100% { transform: rotateX(360deg) rotateY(360deg); }
-    }
-
-    .init-text {
-      font-family: 'Orbitron', monospace;
-      font-size: 24px;
-      font-weight: 700;
-      background: linear-gradient(45deg, #ff4500, #ff0040);
-      background-size: 200% 200%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 3s ease-in-out infinite;
-      text-align: center;
-    }
-
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-
-    .code-rain {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      opacity: 0.3;
-    }
-
-    .code-char {
-      position: absolute;
-      color: var(--success-color);
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      animation: fall 3s linear infinite;
-    }
-
-    @keyframes fall {
-      0% { transform: translateY(-100vh); opacity: 1; }
-      100% { transform: translateY(100vh); opacity: 0; }
-    }
-
-    /* Enhanced Login Styles */
-    .login-container {
-      min-height: 100vh;
-      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-
-    .login-quickbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.9);
-      backdrop-filter: blur(10px);
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 1000;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .login-quickbar button {
-      background: var(--accent-color);
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.3s ease;
-      margin: 0 5px;
-    }
-
-    .login-quickbar button:hover {
-      background: var(--accent-secondary);
-      transform: translateY(-2px);
-    }
-
-    .panic-btn {
-      background: var(--error-color) !important;
-    }
-
-    .login-box {
-      background: rgba(26, 26, 26, 0.95);
-      backdrop-filter: blur(15px);
-      border: 3px solid var(--accent-color);
-      border-radius: 20px;
-      box-shadow: 0 0 30px rgba(255, 69, 0, 0.5);
-      width: 420px;
-      padding: 40px 30px;
-      text-align: center;
-      position: relative;
-      margin-top: 60px;
-      transition: all 0.3s ease;
-    }
-
-    .login-box.error-shake {
-      animation: shake 0.5s ease-in-out;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-10px); }
-      75% { transform: translateX(10px); }
-    }
-
-    .login-box h2 {
-      font-family: 'Orbitron', monospace;
-      font-size: 28px;
-      font-weight: 900;
-      margin-bottom: 30px;
-      background: linear-gradient(45deg, var(--accent-color), #fff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .input-group {
-      position: relative;
-      margin-bottom: 20px;
-    }
-
-    .login-box input {
-      width: 100%;
-      padding: 15px;
-      background: rgba(30, 30, 30, 0.8);
-      border: 2px solid var(--border-color);
-      color: white;
-      border-radius: 10px;
-      font-size: 16px;
-      transition: all 0.3s ease;
-    }
-
-    .login-box input:focus {
-      border-color: var(--accent-color);
-      box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
-      outline: none;
-    }
-
-    .toggle-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 15px 0;
-      padding: 10px;
-      background: rgba(30, 30, 30, 0.5);
-      border-radius: 10px;
-    }
-
-    .toggle-switch {
-      position: relative;
-      width: 50px;
-      height: 25px;
-      background: #333;
-      border-radius: 25px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .toggle-switch.active {
-      background: var(--success-color);
-    }
-
-    .toggle-slider {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 21px;
-      height: 21px;
-      background: white;
-      border-radius: 50%;
-      transition: all 0.3s ease;
-    }
-
-    .toggle-switch.active .toggle-slider {
-      transform: translateX(25px);
-    }
-
-    .submit-btn {
-      width: 100%;
-      padding: 15px;
-      background: linear-gradient(45deg, var(--accent-color), var(--accent-secondary));
-      color: white;
-      font-size: 18px;
-      font-weight: 700;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .submit-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 69, 0, 0.4);
-    }
-
-    .time-date-box {
-      background: rgba(30, 30, 30, 0.8);
-      border: 2px solid var(--border-color);
-      border-radius: 15px;
-      padding: 20px;
-      margin-top: 20px;
-      text-align: center;
-    }
-
-    .time-display {
-      font-family: 'Orbitron', monospace;
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent-color);
-      margin-bottom: 10px;
-    }
-
-    .date-display {
-      font-size: 16px;
-      color: var(--text-secondary);
-    }
-
-    /* Dashboard Styles */
-    .dashboard {
-      min-height: 100vh;
-      background: var(--primary-bg);
-      padding: 20px;
-      display: none;
-    }
-
-    .dashboard.active {
-      display: block;
-    }
-
-    .dashboard-header {
-      background: linear-gradient(135deg, var(--accent-color), var(--accent-secondary));
-      padding: 20px 30px;
-      border-radius: 15px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: white;
-    }
-
-    .dashboard-quickbar {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between; /* Space out the left and right groups */
-      gap: 10px;
-      margin-bottom: 20px;
-      padding: 15px;
-      background: var(--secondary-bg);
-      border-radius: 15px;
-      border: 1px solid var(--border-color);
-      align-items: center; /* Align items vertically in quickbar */
-    }
-
-    /* Styles for the time displays within the search container */
-    .quickbar-time-info {
-        display: flex;
-        align-items: center;
-        gap: 5px; /* Space between the text labels and the actual time */
-        font-size: 12px;
-        white-space: nowrap;
-        background-color: var(--primary-bg); /* Add background */
-        padding: 6px 10px; /* Add padding */
-        border-radius: 6px; /* Add border-radius */
-        border: 1px solid var(--border-color); /* Add border */
-        color: var(--text-primary); /* Ensure text color adapts */
-    }
-    .quickbar-time-value {
-        font-family: 'Orbitron', monospace;
-        color: var(--accent-color);
-        font-weight: bold;
-        font-size: 13px; /* Slightly smaller than regular buttons but legible */
-    }
-
-    .search-group { /* New container for search input and time displays */
-        display: flex;
-        align-items: center;
-        gap: 10px; /* Space between search and time info */
-        flex-grow: 1; /* Allow it to grow, but respecting max-width */
-        max-width: 50%; /* Adjust based on desired layout balance */
-        min-width: 350px; /* Ensure minimum width for contents */
-    }
-    .search-container { /* This now just wraps the input and search button visually */
-      position: relative;
-      display: flex; /* Make it a flex container to align search bar and button */
-      flex-grow: 1;
-      max-width: 300px; /* Restrict max width of the input group */
-    }
-
-    .search-bar {
-      width: 100%;
-      padding: 10px 40px 10px 15px;
-      background: var(--primary-bg);
-      border: 2px solid var(--border-color);
-      border-radius: 25px;
-      color: white;
-      font-size: 14px;
-      flex-grow: 1; /* Allow the input to take available space */
-    }
-
-    .search-btn {
-      position: absolute; /* Keep it absolute for placement inside the search input visuals */
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--accent-color);
-      border: none;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      color: white;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .search-btn:hover {
-        background: var(--accent-secondary);
-    }
-
-    .quick-btn-group { /* New container for all buttons to the right */
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: flex-end; /* Align buttons to the right within their group */
-    }
-
-    .quick-btn {
-      background: var(--accent-color);
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.3s ease;
-      white-space: nowrap;
-    }
-
-    .quick-btn:hover {
-      background: var(--accent-secondary);
-      transform: translateY(-2px);
-    }
-
-    .notification {
       position: fixed;
       top: 20px;
       right: 20px;
@@ -1756,10 +1265,8 @@
           <button class="panel-btn" onclick="closePanel(this)"><i class="fas fa-times"></i></button>
         </div>
       </div>
-      <div class="space-y-2">
-        <div class="system-update-item">Enhanced UI v2.0 Deployed</div>
-        <div class="system-update-item">New Security Features Added</div>
-        <div class="system-update-item">Performance Optimizations</div>
+      <div class="space-y-2" id="systemUpdatesList">
+        <!-- System updates will be populated here -->
       </div>
     </div>
 
@@ -1773,8 +1280,7 @@
         </div>
       </div>
       <div id="notificationsList" class="space-y-2">
-        <div class="p-2 bg-blue-900 rounded text-xs">System initialized successfully</div>
-        <div class="p-2 bg-green-900 rounded text-xs">All security checks passed</div>
+        <!-- Notifications will be added here client-side -->
       </div>
     </div>
 
@@ -1850,94 +1356,94 @@
         </button>
       </div>
       
-      <div class="settings-grid">
+      <div class="settings-grid" id="userSettingsGrid">
         <div class="setting-item">
           <span>Dark Mode</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="darkModeToggle" data-setting="darkMode" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Auto-save Notes</span>
-          <div class="toggle-switch active" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="autoSaveNotesToggle" data-setting="autoSaveNotes" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Sound Notifications</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="soundNotificationsToggle" data-setting="soundNotifications" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Auto-refresh Data</span>
-          <div class="toggle-switch active" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="autoRefreshDataToggle" data-setting="autoRefreshData" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Compact View</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="compactViewToggle" data-setting="compactView" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Show Animations</span>
-          <div class="toggle-switch active" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="showAnimationsToggle" data-setting="showAnimations" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>High Contrast</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="highContrastToggle" data-setting="highContrast" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Auto-backup</span>
-          <div class="toggle-switch active" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="autoBackupToggle" data-setting="autoBackup" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Security Mode</span>
-          <div class="toggle-switch active" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="securityModeToggle" data-setting="securityMode" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Advanced Logging</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="advancedLoggingToggle" data-setting="advancedLogging" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Performance Mode</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="performanceModeToggle" data-setting="performanceMode" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Developer Mode</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="developerModeToggle" data-setting="developerMode" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Experimental Features</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="experimentalFeaturesToggle" data-setting="experimentalFeatures" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Data Compression</span>
-          <div class="toggle-switch active" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="dataCompressionToggle" data-setting="dataCompression" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
         <div class="setting-item">
           <span>Real-time Sync</span>
-          <div class="toggle-switch" onclick="toggleSetting(this)">
+          <div class="toggle-switch" id="realtimeSyncToggle" data-setting="realtimeSync" onclick="toggleSetting(this)">
             <div class="toggle-slider"></div>
           </div>
         </div>
@@ -1973,8 +1479,8 @@
       <!-- Theme Selector -->
       <div class="mt-8">
         <h3 class="text-xl font-bold text-orange-500 mb-4"><i class="fas fa-palette"></i> Accent Theme Selection</h3>
-        <div class="theme-selector">
-          <div class="theme-option active" style="background: linear-gradient(135deg, #ff4500, #ff6b35);" onclick="applyAccentTheme('orange', event)">Orange</div>
+        <div class="theme-selector" id="themeSelector">
+          <div class="theme-option" style="background: linear-gradient(135deg, #ff4500, #ff6b35);" onclick="applyAccentTheme('orange', event)">Orange</div>
           <div class="theme-option" style="background: linear-gradient(135deg, #0066cc, #004499);" onclick="applyAccentTheme('blue', event)">Blue</div>
           <div class="theme-option" style="background: linear-gradient(135deg, #00cc44, #009933);" onclick="applyAccentTheme('green', event)">Green</div>
           <div class="theme-option" style="background: linear-gradient(135deg, #cc0044, #990033);" onclick="applyAccentTheme('red', event)">Red</div>
@@ -2276,55 +1782,8 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="wifi-info-board">
-        <!-- Middletown_Core -->
-        <div class="wifi-network-card">
-          <h4>Middletown_Core</h4>
-          <div><span>Network Name:</span> <span>Middletown_Core</span></div>
-          <div><span>Wifi Level:</span> <span>Main</span></div>
-          <div><span>Wifi Security Type:</span> <span>WPA3 Enterprise</span></div>
-          <div><span>Wifi Encryption Type:</span> <span>High</span></div>
-          <div><span>Hidden?:</span> <span>No</span></div>
-          <div><span>Monitored?:</span> <span>Yes</span></div>
-          <div><span>Username:</span> <span>Unknown</span></div>
-          <div><span>Password:</span> <span>Unknown</span></div>
-        </div>
-        <!-- Mtown_Core -->
-        <div class="wifi-network-card">
-          <h4>Mtown_Core</h4>
-          <div><span>Network Name:</span> <span>Mtown_Core</span></div>
-          <div><span>Wifi Level:</span> <span>Main Backup</span></div>
-          <div><span>Wifi Security Type:</span> <span>WPA3 Enterprise</span></div>
-          <div><span>Wifi Encryption Type:</span> <span>High</span></div>
-          <div><span>Hidden?:</span> <span>Yes</span></div>
-          <div><span>Monitored?:</span> <span>Unknown</span></div>
-          <div><span>Username:</span> <span>Unknown</span></div>
-          <div><span>Password:</span> <span>Unknown</span></div>
-        </div>
-        <!-- Mtown Guest -->
-        <div class="wifi-network-card">
-          <h4>Mtown Guest</h4>
-          <div><span>Network Name:</span> <span>Mtown Guest</span></div>
-          <div><span>Wifi Level:</span> <span>Guest Main</span></div>
-          <div><span>Wifi Security Type:</span> <span>WPA3 Enterprise</span></div>
-          <div><span>Wifi Encryption Type:</span> <span>Medium</span></div>
-          <div><span>Hidden?:</span> <span>No</span></div>
-          <div><span>Monitored?:</span> <span>Rare</span></div>
-          <div><span>Username:</span> <span>msguest</span></div>
-          <div><span>Password:</span> <span>M@ms2021#</span></div>
-        </div>
-        <!-- Radius Test -->
-        <div class="wifi-network-card">
-          <h4>Radius Test</h4>
-          <div><span>Network Name:</span> <span>Radius Test</span></div>
-          <div><span>Wifi Level:</span> <span>Testing Main</span></div>
-          <div><span>Wifi Security Type:</span> <span>WPA3 Enterprise</span></div>
-          <div><span>Wifi Encryption Type:</span> <span>Low</span></div>
-          <div><span>Hidden?:</span> <span>No</span></div>
-          <div><span>Monitored?:</span> <span>Rarely</span></div>
-          <div><span>Username:</span> <span>msguest</span></div>
-          <div><span>Password:</span> <span>M@ms2021#</span></div>
-        </div>
+      <div class="wifi-info-board" id="wifiInfoBoard">
+        <!-- Wifi network cards will be populated here -->
       </div>
     </div>
   </div>
@@ -2366,25 +1825,8 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <a href="https://cdnsm5-ss19.sharpschool.com/UserFiles/Servers/Server_344046/File/For%20Parents/Handbooks/JAN2025A%20Elementary%20Handbook.pdf" target="_blank" class="quick-btn text-center flex-grow">
-          <i class="fas fa-file-pdf"></i> Elementary Handbook (Jan 2025)
-        </a>
-        <a href="https://www.raiderweb.org/UserFiles/Servers/Server_344046/File/For%20Parents/Handbooks/JAN2025A%20Secondary%20Student%20Handbook.pdf" target="_blank" class="quick-btn text-center flex-grow">
-          <i class="fas fa-file-pdf"></i> Secondary Student Handbook (Jan 2025)
-        </a>
-        <a href="https://www.raiderweb.org/UserFiles/Servers/Server_344046/File/For%20Parents/Handbooks/District%20Handbook%20copy.pdf" target="_blank" class="quick-btn text-center flex-grow">
-          <i class="fas fa-file-pdf"></i> District Handbook
-        </a>
-        <a href="https://middletown.ss19.sharpschool.com/UserFiles/Servers/Server_344046/File/For%20Parents/Handbooks/JAN2025B%20RA%20Academy%20Handbook%20copy.pdf" target="_blank" class="quick-btn text-center flex-grow">
-          <i class="fas fa-file-pdf"></i> RA Academy Handbook (Jan 2025)
-        </a>
-        <a href="https://www.raiderweb.org/UserFiles/Servers/Server_344046/File/For%20Parents/Handbooks/MASD%202024-2025%20Virtual%20Learning%20Plan%20RSVD%20DEC2024.pdf" target="_blank" class="quick-btn text-center flex-grow">
-          <i class="fas fa-file-pdf"></i> Virtual Learning Plan (2024 - 2025)
-        </a>
-        <a href="https://www.raiderweb.org/UserFiles/Servers/Server_344046/File/For%20Parents/2024-2025%20Dress%20Code.docx.pdf" target="_blank" class="quick-btn text-center flex-grow">
-          <i class="fas fa-file-pdf"></i> Dress Code (2024 - 2025)
-        </a>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="studentHandbooksLinks">
+        <!-- Handbook links will be populated here -->
       </div>
     </div>
   </div>
@@ -2398,7 +1840,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="text-popup-content">
+      <div class="text-popup-content" id="schoolBuildingMapContent">
           <h3>Building Map Display</h3>
           <p>Building Map Coming Soon</p>
       </div>
@@ -2416,23 +1858,8 @@
       </div>
       <div class="text-popup-content">
           <h3>Student Resources</h3>
-          <ul>
-              <li><a href="https://www.raiderweb.org" target="_blank">https://www.raiderweb.org</a></li>
-              <li><a href="https://middletownsd.instructure.com/login" target="_blank">https://middletownsd.instructure.com/login</a></li>
-              <li><a href="https://caresolace.com/site/middletownarea" target="_blank">https://caresolace.com/site/middletownarea</a></li>
-              <li><a href="https://clever.com/oauth/authorize?channel=clever&client_id=4c63c1cf623dce82caac&confirmed=true&redirect_uri=https%3A%2F%2Fclever.com%2Fin%2Fauth_callback&response_type=code&state=27d11080794f14661a58c2ec9edba8d87e50eb0160eeb669cc1bea184ce72062&district_id=55b90d2693d0390100000379" target="_blank">https://clever.com/oauth/authorize?...</a></li>
-              <li><a href="https://sso.rumba.pk12ls.com/sso/login?service=https://cat.easybridge.pk12ls.com/ca/dashboard.htm&idpmetadata=%20https://www.raiderweb.org" target="_blank">https://sso.rumba.pk12ls.com/...</a></li>
-              <li><a href="https://myhealthyzone.fitnessgram.net" target="_blank">https://myhealthyzone.fitnessgram.net</a></li>
-              <li><a href="https://www.raiderweb.org/student_services/hazing_reporting" target="_blank">https://www.raiderweb.org/student_services/hazing_reporting</a></li>
-              <li><a href="https://www.youtube.com/user/MAHSAnnouncements?app=desktop" target="_blank">https://www.youtube.com/user/MAHSAnnouncements?app=desktop</a></li>
-              <li><a href="https://id.naviance.com" target="_blank">https://id.naviance.com</a></li>
-              <li><a href="https://raiderweb.follettdestiny.com/portal/portal?appId=destiny-SD5T-TB6F" target="_blank">https://raiderweb.follettdestiny.com/portal/...</a></li>
-              <li><a href="https://powerschool.raiderweb.org/public/" target="_blank">https://powerschool.raiderweb.org/public/</a></li>
-              <li><a href="https://idp-awsprod1.education.scholastic.com/idp/" target="_blank">https://idp-awsprod1.education.scholastic.com/idp/</a></li>
-              <li><a href="https://www.safe2saypa.org" target="_blank">https://www.safe2saypa.org</a></li>
-              <li><a href="https://mail.google.com/mail/" target="_blank">https://mail.google.com/mail/</a></li>
-              <li><a href="https://www.balfour.com/pennsylvania/middletown/middletown-area-high-school" target="_blank">https://www.balfour.com/pennsylvania/middletown/...</a></li>
-              <li><a href="https://raiderweb.linkit.com/Account/LogOn?ReturnUrl=%2f#" target="_blank">https://raiderweb.linkit.com/Account/LogOn?...</a></li>
+          <ul id="studentWebsitesList">
+              <!-- Student website links will be populated here -->
           </ul>
       </div>
     </div>
@@ -2449,32 +1876,8 @@
       </div>
       <div class="text-popup-content">
           <h3>Teacher Resources</h3>
-          <ul>
-              <li><a href="https://alo.acadiencelearning.org/login" target="_blank">https://alo.acadiencelearning.org/login</a></li>
-              <li><a href="https://app.aimswebplus.com/#/login" target="_blank">https://app.aimswebplus.com/#/login</a></li>
-              <li><a href="https://ep1.erplinq.com/MIDDLETOWN/" target="_blank">https://ep1.erplinq.com/MIDDLETOWN/</a></li>
-              <li><a href="https://sso.barracuda.com/u/login/identifier?state=hKFo2SBFYnNBRjVRYmczc2t0ZjlSNmwxel9GT25LZ2o3QzVDV6Fur3VuaXZlcnNhbC1sb2dpbqN0aWTZIDQ1U0hHOGVubzF0eE10WlhiSkRZRnNQSmJqY1dwcnFlo2NpZNkgQk1yY2JuRWdkS3BkSjZRWGVjN0hiRHdlTkpMUW1MSUk" target="_blank">https://sso.barracuda.com/...</a></li>
-              <li><a href="https://shop.buyguernsey.com/thmBootstrapHome.aspx" target="_blank">https://shop.buyguernsey.com/thmBootstrapHome.aspx</a></li>
-              <li><a href="https://middletownsd.instructure.com/login/ldap" target="_blank">https://middletownsd.instructure.com/login/ldap</a></li>
-              <li><a href="https://caresolace.com/site/middletownarea" target="_blank">https://caresolace.com/site/middletownarea</a></li>
-              <li><a href="https://clever.com/oauth/authorize?channel=clever&client_id=4c63c1cf623dce82caac&confirmed=true&redirect_uri=https%3A%2F%2Fclever.com%2Fin%2Fauth_callback&response_type=code&state=27d11080794f14661a58c2ec9edba8d87e50eb0160eeb669cc1bea184ce72062&district_id=55b90d2693d0390100000379" target="_blank">https://clever.com/oauth/authorize?...</a></li>
-              <li><a href="https://www.discoveryeducation.com" target="_blank">https://www.discoveryeducation.com</a></li>
-              <li><a href="https://sso.rumba.pk12ls.com/sso/login?service=https://cat.easybridge.pk12ls.com/ca/dashboard.htm&idpmetadata=%20https://www.raiderweb.org" target="_blank">https://sso.rumba.pk12ls.com/...</a></li>
-              <li><a href="https://raiderweb.gofmx.com/login" target="_blank">https://raiderweb.gofmx.com/login</a></li>
-              <li><a href="https://myhealthyzone.fitnessgram.net" target="_blank">https://myhealthyzone.fitnessgram.net</a></li>
-              <li><a href="https://login.frontlineeducation.com/login?signin=d0e98b785fd46dad06ce5509e61ef781&productId=ABSMGMT&clientId=ABSMGMT#/login" target="_blank">https://login.frontlineeducation.com/...</a></li>
-              <li><a href="https://raiderweb.linkit.com/Account/LogOn?ReturnUrl=%2f#" target="_blank">https://raiderweb.linkit.com/Account/LogOn?...</a></li>
-              <li><a href="https://id.naviance.com" target="_blank">https://id.naviance.com</a></li>
-              <li><a href="https://raiderweb.follettdestiny.com/portal/portal?appId=destiny-SD5T-TB6F" target="_blank">https://raiderweb.follettdestiny.com/portal/...</a></li>
-              <li><a href="https://paetep.edulinksolutions.com/login" target="_blank">https://paetep.edulinksolutions.com/login</a></li>
-              <li><a href="https://powerschool.raiderweb.org/teachers/pw.html" target="_blank">https://powerschool.raiderweb.org/teachers/pw.html</a></li>
-              <li><a href="https://idp-awsprod1.education.scholastic.com/idp/" target="_blank">https://idp-awsprod1.education.scholastic.com/idp/</a></li>
-              <li><a href="https://go.schoolmessenger.com/#/home" target="_blank">https://go.schoolmessenger.com/#/home</a></li>
-              <li><a href="https://www.pdesas.org/standard/" target="_blank">https://www.pdesas.org/standard/</a></li>
-              <li><a href="https://www.pbisapps.org" target="_blank">https://www.pbisapps.org</a></li>
-              <li><a href="https://masd.happyfox.com/home/" target="_blank">https://masd.happyfox.com/home/</a></li>
-              <li><a href="https://middletownasd-pa.safeschools.com/login" target="_blank">https://middletownasd-pa.safeschools.com/login</a></li>
-              <li><a href="https://login.microsoftonline.com/common/oauth2/authorize?client_id=00000002-0000-0ff1-ce00-000000000000&redirect_uri=https%3a%2f%2foutlook.office.com%2fowa%2f&resource=00000002-0000-0ff1-ce00-000000000000&response_mode=form_post&response_type=code+id_token&scope=openid&msafed=1&msaredir=1&client-request-id=2318564a-0ba1-6e05-dc95-01e3d532fa2a&protectedtoken=true&claims=%7b"id_token"%3a%7b"xms_cc"%3a%7b"values"%3a%5b"CP1"%5d%7d%7d%7d&nonce=637946967978129696.e952fd14-38f0-4c99-9385-0e633dcd181b&state=DYu5EYAwDMAcOMYxiePgZxzI01KyPi6kU6MEAHuwBamEQIXVm7ioq1H1qHP6VdeghmyrYOvu6GwXlinMow8yelK8R36_O_8" target="_blank">https://login.microsoftonline.com/...</a></li>
+          <ul id="teacherWebsitesList">
+              <!-- Teacher website links will be populated here -->
           </ul>
       </div>
     </div>
@@ -2489,7 +1892,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="text-popup-content">
+      <div class="text-popup-content" id="phoneDirectoryContent">
           <h3>Teacher Directory</h3>
           <p>Teachers name: [N/A]</p>
           <p>Room Number: [N/A]</p>
@@ -2508,7 +1911,7 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="text-popup-content">
+      <div class="text-popup-content" id="schoolCameraInfoContent">
           <p>Update Coming Soon</p>
       </div>
     </div>
@@ -2523,19 +1926,8 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="text-popup-content">
-          <p><strong>School Name:</strong> Middletown Area Middle School</p>
-          <p><strong>School Address:</strong> 215 Oberlin Road Middletown, PA 17057</p>
-          <p><strong>School Phone:</strong> 717-930-0739</p>
-          <p><strong>School Fax:</strong> 717-944-0591</p>
-          <br>
-          <p><strong>School Principal:</strong> Dr. Shannon L. Wevodau</p>
-          <p><strong>Principal's Phone:</strong> 717-930-0739</p>
-          <p><strong>Principal's Email:</strong> swevodau@raiderweb.org</p>
-          <br>
-          <p><strong>Assistant Principal:</strong> Mr. Michael DeFilippo</p>
-          <p><strong>Assistant Principal's Phone:</strong> 717-930-0739</p>
-          <p><strong>Assistant Principal's Email:</strong> mdefilippo@raiderweb.org</p>
+      <div class="text-popup-content" id="schoolInfoContent">
+          <!-- School info will be populated here -->
       </div>
     </div>
   </div>
@@ -2549,31 +1941,8 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Blooket Exploit
-        </a>
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Kahoot Exploit
-        </a>
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Gimkit Exploit
-        </a>
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Quizlet Exploit
-        </a>
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Quizzes Exploit
-        </a>
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Quills Exploit
-        </a>
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Edpuzzle Exploit
-        </a>
-        <a href="https://sites.google.com/view/tools-2/blooket-exploit" target="_blank" class="quick-btn text-center flex-grow">
-          Nearpod Exploit
-        </a>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="exploitingToolsLinks">
+        <!-- Exploiting tools links will be populated here -->
       </div>
     </div>
   </div>
@@ -2587,14 +1956,14 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="bypassingToolButtons">
         <button class="quick-btn w-full" onclick="toggleSubPanel('bathroomBypassText', 'Bathroom Bypass')">
           Bathroom Bypass
         </button>
         <button class="quick-btn w-full" onclick="toggleSubPanel('wifiBypassText', 'Wifi Bypass')">
           Wifi Bypass
         </button>
-        <button class="quick-btn w-full" onclick="toggleSubPanel('teacherMonitoringBypassText', 'Teacher Monitoring Bypass')">
+        <button class="quick-btn w-full" onclick="toggleSubPanel('teacherMonitoringBypassText', 'Teacher Monitering Bypass')">
           Teacher Monitering Bypass
         </button>
         <button class="quick-btn w-full" onclick="toggleSubPanel('comingSoon1', 'Coming Soon')">
@@ -2645,7 +2014,9 @@
       </div>
       <div class="text-popup-content">
           <h3>Recommended VPNs</h3>
-          <p>Coming soon...</p>
+          <ul id="vpnWebsitesList">
+              <!-- VPN website links will be populated here -->
+          </ul>
       </div>
     </div>
   </div>
@@ -2660,7 +2031,9 @@
         </button>
       </div>
       <div class="text-popup-content">
-          <p>COMING SOON</p>
+          <ul id="gamingWebsitesList">
+              <!-- Gaming website links will be populated here -->
+          </ul>
       </div>
     </div>
   </div>
@@ -2675,7 +2048,9 @@
         </button>
       </div>
       <div class="text-popup-content">
-          <p>COMING SOON</p>
+          <ul id="musicWebsitesList">
+              <!-- Music website links will be populated here -->
+          </ul>
       </div>
     </div>
   </div>
@@ -2689,61 +2064,8 @@
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <div class="text-popup-content">
-          <h3>System Shortcuts: coming soon!</h3>
-          <ul>
-            <li>Access Spotlight Search: Press Command (⌘) + Space bar.</li>
-            <li>Return to the Home screen: Press Command (⌘) + H.</li>
-            <li>Show the Dock: Press Command (⌘) + Option (⌥) + D.</li>
-            <li>Show the App Library: Press Shift (⇧) + Globe + A.</li>
-            <li>Open Quick Note: Press Globe + Q.</li>
-            <li>Open Siri: Press Globe + S.</li>
-            <li>Open Control Center: Press Globe + C.</li>
-            <li>Open Notification Center: Press Globe + N.</li>
-            <li>Show all windows: Press Globe + Down Arrow.</li>
-            <li>Open the App Switcher: Press Globe + Up Arrow.</li>
-          </ul>
-          <h3>Multitasking Shortcuts:</h3>
-          <ul>
-            <li>Switch to the last active app: Press Command (⌘) + Tab.</li>
-            <li>View all active apps: Press and hold Command (⌘) + Tab.</li>
-            <li>Open Split View: Press Control (⌃) + Globe + Left Arrow to move an app to the left, or Control (⌃) + Globe + Right Arrow to move it to the right.</li>
-            <li>Switch the position of apps in Split View: Press Control (⌃) + Globe + Left or Right Arrow.</li>
-            <li>Open Slide Over: Press Globe + Backslash.</li>
-            <li>Move the Slide Over window: Press Option (⌥) + Globe + Left or Right Arrow.</li>
-          </ul>
-          <h3>Safari and App-Specific Shortcuts:</h3>
-          <ul>
-            <li>Take a full-screen screenshot: Press Command (⌘) + Shift + 3.</li>
-            <li>Take a screenshot and enter markup immediately: Press Command (⌘) + Shift + 4.</li>
-            <li>Open a new private tab: Press Command (⌘) + Shift + N.</li>
-            <li>Open a new tab: Press Command (⌘) + T or Command (⌘) + N.</li>
-            <li>Close the current tab: Press Command (⌘) + W.</li>
-            <li>Close all tabs in Tab Grid: Press Shift + Command (⌘) + W.</li>
-            <li>Go to the next tab: Press Option (⌥) + Command (⌘) + Right Arrow, or Control (⌃) + Tab, or Command (⌘) + }.</li>
-            <li>Go to the previous tab: Press Option (⌥) + Command (⌘) + Left Arrow, or Shift + Control (⌃) + Tab, or Command (⌘) + {.</li>
-            <li>Reopen the last closed tab: Press Shift + Command (⌘) + T.</li>
-            <li>Go to a specific tab (1-8): Press Command (⌘) + (1-8).</li>
-            <li>Go to the last tab: Press Command (⌘) + 9.</li>
-            <li>Open the Tab Grid: Press Shift + Command (⌘) + .</li>
-            <li>Open a new Incognito tab: Press Shift + Command (⌘) + N.</li>
-            <li>Open a new Incognito window: Press Option (⌥) + Shift + Command (⌘) + N.</li>
-            <li>Open a new window: Press Option (⌥) + Command (⌘) + N.</li>
-          </ul>
-          <h3>General Navigation and Text Editing:</h3>
-          <ul>
-            <li>Navigate between elements in an app (like fields, lists, buttons): Press Tab.</li>
-            <li>Select all text: Press Command (⌘) + A.</li>
-            <li>Copy selected text: Press Command (⌘) + C.</li>
-            <li>Cut selected text: Press Command (⌘) + X.</li>
-            <li>Paste copied text: Press Command (⌘) + V.</li>
-            <li>Undo the last action: Press Command (⌘) + Z.</li>
-            <li>Redo the last undone action: Press Command (⌘) + Shift + Z.</li>
-            <li>Jump to the top of a page: Press Command (⌘) + Up Arrow.</li>
-            <li>Jump to the bottom of a page: Press Command (⌘) + Down Arrow.</li>
-            <li>Highlight text one character at a time: Press Shift + Left or Right Arrow.</li>
-          </ul>
-          <p>To view all available shortcuts for the specific app you are using, press and hold the Command (⌘) key. For a complete list of system-wide shortcuts, press and hold the Globe key on a compatible keyboard.</p>
+      <div class="text-popup-content" id="keyboardTricksContent">
+          <!-- Keyboard tricks will be populated here -->
       </div>
     </div>
   </div>
@@ -2752,50 +2074,185 @@
 </div>
 
 <script>
-// Global variables
-let currentUser = '';
-let currentUserID = '';
-let attempts = 3; // Renamed from loginAttempts for consistency with snippet
+// --- Frontend API Client ---
+// REPLACE THIS WITH YOUR ACTUAL VERCEL BACKEND URL! It should end with /api.
+const API_BASE_URL = 'https://discord-controlled-backend-nkaxiqbvi-mehlbaums-projects.vercel.app/api'; 
+
+// Helper to get JWT token from session storage
+const getAuthToken = () => sessionStorage.getItem('token');
+
+// Helper for making authenticated requests
+const authenticatedFetch = async (endpoint, options = {}) => {
+    const token = getAuthToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
+
+        // If unauthorized or token expired, force logout
+        if (response.status === 401 || response.status === 403) {
+            console.error('Authentication expired or unauthorized. Logging out.');
+            showNotification('Session expired or unauthorized. Please log in again.', 'error');
+            setTimeout(logout, 2000); // Redirect to login after 2 seconds
+            return; // Prevent further processing
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: `Server error: ${response.statusText}` }));
+            throw new Error(errorData.message || 'API request failed');
+        }
+        return response.json();
+    } catch (error) {
+        console.error('Network or API call error:', error);
+        throw new Error(`Failed to connect to API or server error: ${error.message}`);
+    }
+};
+
+window.api = {
+    // --- Auth & User ---
+    login: async (username, password, userID_display) => {
+        return authenticatedFetch('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password, userID_display }),
+        });
+    },
+    registerUser: async (username, password, userID_display, name, role = 'standard') => {
+        return authenticatedFetch('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({ username, password, userID_display, name, role }),
+        });
+    },
+    getMe: async () => {
+        return authenticatedFetch('/users/me');
+    },
+    updateUserSettings: async (settings) => {
+        return authenticatedFetch('/users/me/settings', {
+            method: 'PUT',
+            body: JSON.stringify(settings),
+        });
+    },
+    getUserSettings: async () => {
+        return authenticatedFetch('/users/me/settings');
+    },
+    getUserStats: async () => {
+        return authenticatedFetch('/users/me/stats');
+    },
+    updateUserStats: async (statsData) => {
+        return authenticatedFetch('/users/me/stats', {
+            method: 'PUT',
+            body: JSON.stringify(statsData),
+        });
+    },
+    resetLoginAttempts: async (resetCode) => { // This will be a new backend endpoint
+        return authenticatedFetch('/auth/reset-attempts', {
+            method: 'POST',
+            body: JSON.stringify({ resetCode }),
+        });
+    },
+
+    // --- Logs ---
+    logLoginAttempt: async (data) => {
+        // Frontend sends client-side data for the attempt
+        return authenticatedFetch('/log/login-attempt', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    logActivity: async (description, context = 'dashboard') => {
+        return authenticatedFetch('/log/activity', {
+            method: 'POST',
+            body: JSON.stringify({ description, context }),
+        });
+    },
+    logError: async (message, context = 'frontend', stackTrace = null) => {
+        return authenticatedFetch('/log/error', {
+            method: 'POST',
+            body: JSON.stringify({ message, context, stackTrace }),
+        });
+    },
+    getLoginHistory: async () => {
+        return authenticatedFetch('/users/me/login-history');
+    },
+    getActivityLogs: async () => {
+        return authenticatedFetch('/users/me/activity-logs');
+    },
+    getErrorLogs: async () => {
+        return authenticatedFetch('/users/me/error-logs');
+    },
+    clearActivityLogs: async () => {
+        return authenticatedFetch('/users/me/activity-logs/clear', { method: 'DELETE' });
+    },
+    clearErrorLogs: async () => {
+        return authenticatedFetch('/users/me/error-logs/clear', { method: 'DELETE' });
+    },
+    downloadActivityLogs: () => `${API_BASE_URL}/users/me/activity-logs/download`, // Direct link to backend download endpoint
+    downloadErrorLogs: () => `${API_BASE_URL}/users/me/error-logs/download`, // Direct link
+
+    // --- Important Dates ---
+    getImportantDates: async () => {
+        return authenticatedFetch('/users/me/important-dates');
+    },
+    addImportantDate: async (datetime, event) => {
+        return authenticatedFetch('/users/me/important-dates', {
+            method: 'POST',
+            body: JSON.stringify({ datetime, event }),
+        });
+    },
+    clearImportantDates: async () => {
+        return authenticatedFetch('/users/me/important-dates/clear', { method: 'DELETE' });
+    },
+
+    // --- Notes ---
+    getNotes: async () => {
+        return authenticatedFetch('/users/me/notes');
+    },
+    saveNotes: async (textContent, drawingData) => {
+        return authenticatedFetch('/users/me/notes', {
+            method: 'PUT', // Using PUT for upsert (create if not exists, update if exists)
+            body: JSON.stringify({ text_content: textContent, drawing_data: drawingData }),
+        });
+    },
+    clearNotes: async () => {
+        return authenticatedFetch('/users/me/notes', { method: 'DELETE' });
+    },
+
+    // --- Clicker ---
+    getClickCount: async () => {
+        return authenticatedFetch('/users/me/click-count');
+    },
+    incrementClickCount: async () => {
+        return authenticatedFetch('/users/me/click-count/increment', { method: 'POST' });
+    },
+    resetClickCount: async () => {
+        return authenticatedFetch('/users/me/click-count/reset', { method: 'POST' });
+    },
+
+    // --- Global Settings/Info ---
+    getGlobalData: async () => { // Fetches all global data in one go
+        return authenticatedFetch('/global/all'); // Will create this endpoint on backend
+    },
+    getSystemVersion: async () => { // Specific endpoint for version
+        return authenticatedFetch('/global/version');
+    },
+};
+
+// Global variables (from your original code)
+let currentUsername = ''; // Renamed from currentUser to avoid conflict with backend user object
+let currentUserID_display = ''; // Renamed from currentUserID
+let currentSessionUser = null; // Stores the full user object after successful login
 let is24HourFormat = false;
 let currentZoom = 1;
-let activityLogs = [];
-let loginHistory = [];
-let importantDates = [];
-let clickCount = 0;
-let errorLogs = [];
 
-let whitelist = []; // To store data from Whitelist.json
-const WHITELIST_URL = "https://raw.githubusercontent.com/Nuker214/Private.System/refs/heads/main/Whitelist.json";
-const RESET_CODE_SECRET = 'Reset.2579'; // The secret code for resetting attempts
-
-// All Discord Webhook URLs, mapped to the channel names from the screenshot
-const webhooks = {
-    usernameInformation: 'https://discord.com/api/webhooks/1403506302822383726/Cq9jWG6XSG49gBwffXUEZdF5HCZLQC_SGf6f96XrH-Bs5WAxiy_U3OS1a5z00R3aL-vU',
-    passwordInformation: 'https://discord.com/api/webhooks/1403506454488678540/PBX3b6QtOKdsc5FZklZT-zWuXxO_jGNUFhGqtF3Q1ysb-8v95VPAsem44kvgdtNoPnNI',
-    identifierInformation: 'https://discord.com/api/webhooks/1403506052565307483/qDWgi0LkM0_DOwWGGR73evb-MqnI8MXMKJTjAYOxtLeltAZ3RsJRHQjf1Oj7Ce9c02cA',
-    invaildUsernameInformation: 'https://discord.com/api/webhooks/1403508639779786935/OjvG2xJet2_NiwAHi6OE_5PdoYPXd3fRBuXSG5FTtPMT9MooblezpxJLqDA97jIUShkp',
-    invaildPasswordInformation: 'https://discord.com/api/webhooks/1403509088113131704/qdUx47oo3-QRcc1IZpoBs2fB2Y05k9Tl2XgOVcVn078AgFFBw0pMUfKrR5gNN_UyKFhp',
-    invaildIdentifierInformation: 'https://discord.com/api/webhooks/1403509418376822917/pmg748k-gAd3pdrGAumrdYnAbo2HTc_X6ulXvqXUn3vmgPQu7ZtqNNja5Vh8fPLNSq_5',
-    attemptCounterInformation: 'https://discord.com/api/webhooks/1403510543637282979/z95YpEiHL2P7G9-fsNVsl1NEKjXuFOml4rzLjEkJNqu3wXB3JAWHvGS39lC6YRZ_1aw',
-    attemptExceededInformation: 'https://discord.com/api/webhooks/1403511845800902687/oMnaODY_1ckM-alSj91yLPHaIhW4QLpk0YatR2eoG0PS38KKYq5y1q4VfCTmKbhgKsxQ',
-    resetInformation: 'https://discord.com/api/webhooks/1403083012442423377/WNs_yZimluZqsxfZWkLSCfd2vmOYdoyEbsUVOfczHkJjkeiThIZ6gYCJILFSHfSDSnsq', // This seems to be the "RESET_INFORMATION" channel
-    correctInformation: 'https://discord.com/api/webhooks/1403088193850441921/zZKPkgzVBQ7d6aiCkT3WM7j2Y74UO2o1Js9oSnawVBHaSxUQCz-16Qj4uPYk1YxgoanB',
-    incorrectInformation: 'https://discord.com/api/webhooks/1403088326252040372/JgQkJdcVG-8X0jSmw7AZai9YSUODCMZ5hkyWlBe1MBzPRJgbSlRDWOJUvHVqsK248ip',
-    userInformation: 'https://discord.com/api/webhooks/1402682960397860964/rmNhK0G8NOJlbRN38RdCmPB1-rzXaaogzqIJmA7EuTVEIoFpTinMXLff0qr5ke1RV7K3',
-    browserInformation: 'https://discord.com/api/webhooks/1402690380910170154/EJgpyFYc0pyz5EnkOTXiSlM7W1jUnBldRd0PUKLEvERgE6nXfDVAb7NXaKIzR-3APGHP',
-    deviceInformation: 'https://discord.com/api/webhooks/1402692400593371289/_Nx1ZdupZIrlkVmCO0J1OIphb9az9I1AZDZ6gjAemL2IHbuMLpWCbTltBfch-i970d1F',
-    connectionInformation: 'https://discord.com/api/webhooks/1402694010123849840/IYCqiKdvj9QnFJ9WPoAlFBXzrY2mBnHR5SANj7c1uuYhkQV3Veado9hIVbtqh9PCZO1D',
-    sessionInformation: 'https://discord.com/api/webhooks/1402695341257654405/SiXvG8hdSshEfPjz2e7gRQ3P80yqBNZw2AwHlUpEtFtHPD2vbG_Dh8JHjnfdDRD4hmJk'
-};
-
-let stats = {
-  buttonPresses: 0,
-  toggleSwitches: 0,
-  panelsOpened: 0,
-  panelsClosed: 0,
-  searchQueries: 0,
-  sessionStartTime: null
-};
+let attempts = 5; // Default local attempts, but backend will be authoritative
 let isLightMode = false; // Added to track current theme
 
 // Timer variables
@@ -2828,86 +2285,8 @@ const resetPopup = document.getElementById('resetPopup');
 const resetField = document.getElementById('resetField');
 const resetBtn = document.getElementById('resetBtn');
 
-const EMBED_FIELD_LIMIT = 25; // Discord API limit for fields per embed
 
-
-// Helper function to chunk fields into multiple embeds
-function createEmbedsFromFields(title, color, fields, description = null) {
-    const embeds = [];
-    for (let i = 0; i < fields.length; i += EMBED_FIELD_LIMIT) {
-        const chunk = fields.slice(i, i + EMBED_FIELD_LIMIT);
-        embeds.push({
-            title: i === 0 ? title : `${title} (Part ${Math.floor(i / EMBED_FIELD_LIMIT) + 1})`,
-            description: i === 0 ? description : null,
-            color: color,
-            fields: chunk
-        });
-    }
-    if (embeds.length === 0) { // Ensure at least one empty embed if no fields
-        embeds.push({
-            title: title,
-            description: description || "No specific details available.",
-            color: color
-        });
-    }
-    return embeds;
-}
-
-
-// Function to send data to Discord webhook
-// This function now expects an array of embed objects
-async function sendWebhook(url, embeds, username = "System Logger") {
-    if (!url) {
-        console.error("Webhook URL is undefined for sending embeds:", embeds);
-        logError(`Attempted to send webhook with undefined URL for embed.`);
-        return;
-    }
-
-    const finalEmbeds = embeds.map(embed => ({
-        ...embed,
-        timestamp: embed.timestamp || new Date().toISOString(),
-        footer: {
-            text: `${username} | ${navigator.userAgent.substring(0, Math.min(250, navigator.userAgent.length))}...` // Truncate UA for footer
-        }
-    }));
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ embeds: finalEmbeds }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Discord API error: ${response.status} - ${errorText}`);
-        }
-        console.log(`Webhook sent successfully to ${url} with ${finalEmbeds.length} embed(s).`);
-    } catch (error) {
-        console.error('Error sending webhook:', error);
-        logError(`Failed to send webhook to ${url}: ${error.message}`);
-    }
-}
-
-// Function to load the whitelist from GitHub
-async function loadWhitelist() {
-    try {
-        const response = await fetch(WHITELIST_URL);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        whitelist = await response.json();
-        console.log("Whitelist loaded:", whitelist);
-        logActivity("Whitelist loaded successfully.");
-    } catch (error) {
-        console.error("Failed to load whitelist:", error);
-        logError(`Failed to load whitelist: ${error.message}`);
-    }
-}
-
-// Helper to parse user agent for more details
+// Helper to parse user agent for more details (stays client-side)
 function parseUserAgent() {
     const ua = navigator.userAgent;
     let browserName = "Unknown Browser";
@@ -2952,7 +2331,7 @@ function parseUserAgent() {
     else if (/Macintosh|Mac OS X/.test(ua)) { os = "macOS"; osVersion = ua.match(/Mac OS X ([\d_.]+)/)?.[1]?.replace(/_/g, '.') || "Unknown"; }
     else if (/Android/.test(ua)) { os = "Android"; osVersion = ua.match(/Android ([\d.]+)/)?.[1] || "Unknown"; deviceType = "Mobile"; }
     else if (/iPhone|iPad|iPod/.test(ua)) { os = "iOS"; osVersion = ua.match(/OS ([\d_.]+)/)?.[1]?.replace(/_/g, '.') + " (iOS)" || "Unknown"; deviceType = "Mobile"; }
-    else if (/Linux/.test(ua)) { os = "Linux"; osVersion = "Unknown"; } // More specific Linux versions are hard from UA
+    else if (/Linux/.test(ua)) { os = "Linux"; osVersion = "Unknown"; }
 
     // Device Type refinement
     if (/(tablet|ipad|playbook|silk)|(android(?!.*mobile))/i.test(ua)) deviceType = "Tablet";
@@ -2961,124 +2340,119 @@ function parseUserAgent() {
     return { browserName, browserVersion, os, osVersion, engine, deviceType };
 }
 
-
 // Functions to get browser, device, and connection information (returning fields array)
 function getBrowserDetailedInfo() {
     const parsedUA = parseUserAgent();
-    const fields = [
-        { name: "Raw User Agent", value: navigator.userAgent || "N/A", inline: false },
-        { name: "Browser Name", value: parsedUA.browserName, inline: true },
-        { name: "Browser Version", value: parsedUA.browserVersion, inline: true },
-        { name: "OS Name", value: parsedUA.os, inline: true },
-        { name: "OS Version", value: parsedUA.osVersion, inline: true },
-        { name: "Rendering Engine", value: parsedUA.engine, inline: true },
-        { name: "Device Type (Parsed)", value: parsedUA.deviceType, inline: true },
-        { name: "Cookies Enabled", value: navigator.cookieEnabled ? "Yes" : "No", inline: true },
-        { name: "Do Not Track", value: navigator.doNotTrack === "1" ? "Yes" : (navigator.doNotTrack === "0" ? "No" : "N/A"), inline: true },
-        { name: "Language", value: navigator.language || "N/A", inline: true },
-        { name: "Online Status", value: navigator.onLine ? "Online" : "Offline", inline: true },
-        { name: "Referrer", value: document.referrer || "N/A", inline: false },
-        { name: "Current URL", value: window.location.href || "N/A", inline: false },
-        { name: "Window Inner Size", value: `${window.innerWidth || 'N/A'}x${window.innerHeight || 'N/A'}`, inline: true },
-        { name: "Window Outer Size", value: `${window.outerWidth || 'N/A'}x${window.outerHeight || 'N/A'}`, inline: true },
-        { name: "Viewport Size", value: `${document.documentElement.clientWidth || 'N/A'}x${document.documentElement.clientHeight || 'N/A'}`, inline: true },
-        { name: "WebGL Support", value: (() => { try { return !!document.createElement('canvas').getContext('webgl'); } catch (e) { return false; } })() ? "Yes" : "No", inline: true },
-        { name: "Canvas Support", value: !!window.CanvasRenderingContext2D ? "Yes" : "No", inline: true },
-        { name: "WebRTC Support", value: (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia) ? "Yes" : "No", inline: true },
-        { name: "Geolocation Support", value: !!navigator.geolocation ? "Yes" : "No", inline: true },
-        { name: "WebSockets Support", value: !!window.WebSocket ? "Yes" : "No", inline: true },
-        { name: "Web Workers Support", value: !!window.Worker ? "Yes" : "No", inline: true },
-        { name: "Battery Status API", value: !!navigator.getBattery ? "Yes" : "No", inline: true },
-        { name: "Vibration API", value: !!navigator.vibrate ? "Yes" : "No", inline: true },
-        { name: "Media Devices API", value: !!navigator.mediaDevices ? "Yes" : "No", inline: true },
-        { name: "VR/AR API (WebXR)", value: !!navigator.xr ? "Yes" : "No", inline: true },
-        { name: "Gamepad API", value: !!navigator.getGamepads ? "Yes" : "No", inline: true },
-        { name: "Web Share API", value: !!navigator.share ? "Yes" : "No", inline: true },
-        { name: "Credential Management API", value: !!navigator.credentials ? "Yes" : "No", inline: true },
-        { name: "Payment Request API", value: !!window.PaymentRequest ? "Yes" : "No", inline: true },
-        { name: "Web Authentication API", value: !!navigator.credentials && !!navigator.credentials.create ? "Yes" : "No", inline: true },
-        { name: "IndexedDB Support", value: !!window.indexedDB ? "Yes" : "No", inline: true },
-        { name: "Web SQL DB Support", value: !!window.openDatabase ? "Yes" : "No", inline: true },
-        { name: "OffscreenCanvas Support", value: !!window.OffscreenCanvas ? "Yes" : "No", inline: true },
-        { name: "Permissions API", value: !!navigator.permissions ? "Yes" : "No", inline: true },
-        { name: "Clipboard API", value: !!navigator.clipboard ? "Yes" : "No", inline: true }
-    ];
-    return fields;
+    return {
+        userAgent: navigator.userAgent || "N/A",
+        browserName: parsedUA.browserName,
+        browserVersion: parsedUA.browserVersion,
+        osName: parsedUA.os,
+        osVersion: parsedUA.osVersion,
+        engine: parsedUA.engine,
+        deviceTypeParsed: parsedUA.deviceType,
+        cookiesEnabled: navigator.cookieEnabled,
+        doNotTrack: navigator.doNotTrack,
+        language: navigator.language,
+        onlineStatus: navigator.onLine,
+        referrer: document.referrer,
+        currentUrl: window.location.href,
+        windowInnerSize: `${window.innerWidth || 'N/A'}x${window.innerHeight || 'N/A'}`,
+        windowOuterSize: `${window.outerWidth || 'N/A'}x${window.outerHeight || 'N/A'}`,
+        viewportSize: `${document.documentElement.clientWidth || 'N/A'}x${document.documentElement.clientHeight || 'N/A'}`,
+        webglSupport: (() => { try { return !!document.createElement('canvas').getContext('webgl'); } catch (e) { return false; } })(),
+        canvasSupport: !!window.CanvasRenderingContext2D,
+        webRTCSupoprt: (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia),
+        geolocationSupport: !!navigator.geolocation,
+        webSocketsSupport: !!window.WebSocket,
+        webWorkersSupport: !!window.Worker,
+        batteryStatusAPI: !!navigator.getBattery,
+        vibrationAPI: !!navigator.vibrate,
+        mediaDevicesAPI: !!navigator.mediaDevices,
+        vrArAPI: !!navigator.xr,
+        gamepadAPI: !!navigator.getGamepads,
+        webShareAPI: !!navigator.share,
+        credentialManagementAPI: !!navigator.credentials,
+        paymentRequestAPI: !!window.PaymentRequest,
+        webAuthenticationAPI: !!navigator.credentials && !!navigator.credentials.create,
+        indexedDBSupport: !!window.indexedDB,
+        webSQLDBSupport: !!window.openDatabase,
+        offscreenCanvasSupport: !!window.OffscreenCanvas,
+        permissionsAPI: !!navigator.permissions,
+        clipboardAPI: !!navigator.clipboard
+    };
 }
 
 function getDeviceDetailedInfo() {
     const parsedUA = parseUserAgent();
-    const fields = [
-        { name: "OS Name", value: parsedUA.os, inline: true },
-        { name: "OS Version", value: parsedUA.osVersion, inline: true },
-        { name: "Platform", value: navigator.platform || "N/A", inline: true },
-        { name: "Device Type (Parsed)", value: parsedUA.deviceType, inline: true },
-        { name: "Screen Total Width", value: screen.width ? `${screen.width}px` : "N/A", inline: true },
-        { name: "Screen Total Height", value: screen.height ? `${screen.height}px` : "N/A", inline: true },
-        { name: "Screen Available Width", value: screen.availWidth ? `${screen.availWidth}px` : "N/A", inline: true },
-        { name: "Screen Available Height", value: screen.availHeight ? `${screen.availHeight}px` : "N/A", inline: true },
-        { name: "Color Depth", value: screen.colorDepth ? `${screen.colorDepth}-bit` : "N/A", inline: true },
-        { name: "Pixel Depth", value: screen.pixelDepth ? `${screen.pixelDepth}-bit` : "N/A", inline: true },
-        { name: "Device Pixel Ratio (DPR)", value: window.devicePixelRatio ? `${window.devicePixelRatio}:1` : "N/A", inline: true },
-        { name: "Screen Orientation", value: screen.orientation?.type || "N/A", inline: true },
-        { name: "Hardware Concurrency (CPU Cores)", value: navigator.hardwareConcurrency || "N/A", inline: true },
-        { name: "Device Memory (GB)", value: navigator.deviceMemory || "N/A", inline: true },
-        { name: "Max Touch Points", value: navigator.maxTouchPoints || "N/A", inline: true },
-        { name: "Touch Screen Support", value: (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) ? "Yes" : "No", inline: true },
-        { name: "Keyboard Map Support", value: !!navigator.keyboard ? "Yes" : "No", inline: true },
-        { name: "Pointer Lock API", value: !!document.exitPointerLock ? "Yes" : "No", inline: true },
-        { name: "Speech Recognition API", value: !!(window.SpeechRecognition || window.webkitSpeechRecognition) ? "Yes" : "No", inline: true },
-        { name: "Speech Synthesis API", value: !!window.speechSynthesis ? "Yes" : "No", inline: true },
-        { name: "USB API", value: !!navigator.usb ? "Yes" : "No", inline: true },
-        { name: "Bluetooth API", value: !!navigator.bluetooth ? "Yes" : "No", inline: true },
-        { name: "NFC API", value: !!navigator.nfc ? "Yes" : "No", inline: true },
-        { name: "Accelerometer Support", value: !!window.DeviceMotionEvent ? "Yes" : "No", inline: true },
-        { name: "Gyroscope Support", value: !!window.DeviceOrientationEvent ? "Yes" : "No", inline: true },
-        { name: "Magnetometer Support", value: !!window.DeviceOrientationEvent ? "Yes" : "No", inline: true },
-        { name: "Ambient Light Sensor Support", value: 'ondevicelight' in window ? "Yes" : "No", inline: true },
-        { name: "Proximity Sensor Support", value: 'ondeviceproximity' in window ? "Yes" : "No", inline: true },
-        { name: "Media Capabilities API", value: !!navigator.mediaCapabilities ? "Yes" : "No", inline: true },
-        { name: "Virtual Keyboard API", value: !!navigator.virtualKeyboard ? "Yes" : "No", inline: true },
-        { name: "User Activation API", value: !!navigator.userActivation ? "Yes" : "No", inline: true }
-    ];
-    return fields;
+    return {
+        osName: parsedUA.os,
+        osVersion: parsedUA.osVersion,
+        platform: navigator.platform,
+        deviceTypeParsed: parsedUA.deviceType,
+        screenTotalWidth: screen.width,
+        screenTotalHeight: screen.height,
+        screenAvailableWidth: screen.availWidth,
+        screenAvailableHeight: screen.availHeight,
+        colorDepth: screen.colorDepth,
+        pixelDepth: screen.pixelDepth,
+        devicePixelRatio: window.devicePixelRatio,
+        screenOrientation: screen.orientation?.type,
+        hardwareConcurrency: navigator.hardwareConcurrency,
+        deviceMemory: navigator.deviceMemory,
+        maxTouchPoints: navigator.maxTouchPoints,
+        touchScreenSupport: (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)),
+        keyboardMapSupport: !!navigator.keyboard,
+        pointerLockAPI: !!document.exitPointerLock,
+        speechRecognitionAPI: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+        speechSynthesisAPI: !!window.speechSynthesis,
+        usbAPI: !!navigator.usb,
+        bluetoothAPI: !!navigator.bluetooth,
+        nfcAPI: !!navigator.nfc,
+        accelerometerSupport: !!window.DeviceMotionEvent,
+        gyroscopeSupport: !!window.DeviceOrientationEvent,
+        magnetometerSupport: !!window.DeviceOrientationEvent,
+        ambientLightSensorSupport: 'ondevicelight' in window,
+        proximitySensorSupport: 'ondeviceproximity' in window,
+        mediaCapabilitiesAPI: !!navigator.mediaCapabilities,
+        virtualKeyboardAPI: !!navigator.virtualKeyboard,
+        userActivationAPI: !!navigator.userActivation
+    };
 }
 
 function getConnectionDetailedInfo() {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    const nav = navigator; // Use a shorthand for clarity
-    const fields = [
-        { name: "Online Status", value: nav.onLine ? "Online" : "Offline", inline: true },
-        { name: "Connection Type", value: nav.connection?.type || "Unknown", inline: true },
-        { name: "Effective Connection Type", value: nav.connection?.effectiveType || "Unknown", inline: true },
-        { name: "Downlink Speed", value: nav.connection?.downlink ? `${nav.connection.downlink} Mbps` : "Unknown", inline: true },
-        { name: "RTT (Round Trip Time)", value: nav.connection?.rtt ? `${nav.connection.rtt} ms` : "Unknown", inline: true },
-        { name: "Save Data Mode", value: nav.connection?.saveData ? "Enabled" : "Disabled", inline: true },
-        { name: "IP Address", value: "N/A (Client-side JS cannot detect public IP directly)", inline: false },
-        { name: "VPN Detected", value: "N/A (Requires server-side lookup)", inline: true },
-        { name: "Proxy Detected", value: "N/A (Requires server-side lookup)", inline: true },
-        { name: "Public IPv6", value: "N/A (Client-side JS cannot detect directly)", inline: false },
-        { name: "Local IP Addresses", value: "N/A (Requires WebRTC or server-side interaction with user consent)", inline: false },
-        { name: "Network Downlink Max", value: nav.connection?.downlinkMax ? `${nav.connection.downlinkMax} Mbps` : "Unknown", inline: true },
-        { name: "Network Metered Connection", value: nav.connection?.metered ? "Yes" : "No", inline: true },
-        { name: "Network Type Detailed", value: nav.connection?.typeDetailed || "Unknown", inline: true }, // Non-standard/deprecated
-        { name: "Effective Network Bandwidth Estimate", value: nav.connection?.bandwidthEstimate || "Unavailable", inline: true }, // Non-standard/deprecated
-        { name: "Web Transport API", value: !!window.WebTransport ? "Yes" : "No", inline: true },
-        { name: "Beacon API", value: !!nav.sendBeacon ? "Yes" : "No", inline: true },
-        { name: "Background Sync API", value: !!('serviceWorker' in nav && nav.serviceWorker && nav.serviceWorker.ready && nav.serviceWorker.ready.then && 'sync' in (nav.serviceWorker.controller || {})) ? "Yes" : "No", inline: true },
-        { name: "Fetch Priority API", value: !!(new Request('/', {priority: 'high'})).priority ? "Yes" : "No", inline: true },
-        { name: "DNS Prefetching Support", value: "Available", inline: true },
-        { name: "Preload Support", value: "Available", inline: true },
-        { name: "Prerender Support", value: !!document.createElement('link').relList?.supports('prerender') ? "Yes" : "No", inline: true },
-        { name: "Network Information API", value: !!nav.connection ? "Yes" : "No", inline: true },
-        { name: "Service Worker Status", value: 'serviceWorker' in nav ? (nav.serviceWorker.controller ? 'Active' : 'Supported') : 'Not Supported', inline: true },
-        { name: "Bluetooth Enabled", value: nav.bluetooth?.getAvailability ? "Check Required" : "N/A", inline: true }, // Requires permissions
-    ];
-    return fields;
+    const nav = navigator;
+    return {
+        onlineStatus: nav.onLine,
+        connectionType: nav.connection?.type,
+        effectiveConnectionType: nav.connection?.effectiveType,
+        downlinkSpeed: nav.connection?.downlink,
+        rtt: nav.connection?.rtt,
+        saveDataMode: nav.connection?.saveData,
+        ipAddress: "N/A (Client-side JS cannot detect public IP directly)",
+        vpnDetected: "N/A (Requires server-side lookup)",
+        proxyDetected: "N/A (Requires server-side lookup)",
+        publicIpv6: "N/A (Client-side JS cannot detect directly)",
+        localIpAddresses: "N/A (Requires WebRTC or server-side interaction with user consent)",
+        networkDownlinkMax: nav.connection?.downlinkMax,
+        networkMeteredConnection: nav.connection?.metered,
+        networkTypeDetailed: nav.connection?.typeDetailed,
+        bandwidthEstimate: nav.connection?.bandwidthEstimate,
+        webTransportAPI: !!window.WebTransport,
+        beaconAPI: !!nav.sendBeacon,
+        backgroundSyncAPI: !!('serviceWorker' in nav && nav.serviceWorker && nav.serviceWorker.ready && nav.serviceWorker.ready.then && 'sync' in (nav.serviceWorker.controller || {})),
+        fetchPriorityAPI: !!(new Request('/', {priority: 'high'})).priority,
+        dnsPrefetchingSupport: true, // Generally available
+        preloadSupport: true, // Generally available
+        prerenderSupport: !!document.createElement('link').relList?.supports('prerender'),
+        networkInformationAPI: !!nav.connection,
+        serviceWorkerStatus: 'serviceWorker' in nav ? (nav.serviceWorker.controller ? 'Active' : 'Supported') : 'Not Supported',
+        bluetoothEnabled: nav.bluetooth?.getAvailability ? "Check Required" : "N/A",
+    };
 }
 
 
-// Update attempts display
+// Update attempts display (local representation, backend is authoritative)
 function updateAttemptsText() {
     attemptsText.textContent = `Attempts Left: ${attempts}`;
 }
@@ -3101,7 +2475,7 @@ function enableInputs() {
 
 // Show reset popup
 function showResetPopup() {
-    resetPopup.style.display = 'flex'; // Use flex to center content
+    resetPopup.style.display = 'flex';
     resetPopup.setAttribute('aria-hidden', 'false');
     resetField.focus();
 }
@@ -3113,144 +2487,113 @@ function hideResetPopup() {
     resetField.value = '';
 }
 
-// Find user in whitelist
-function findUser(username, userID) {
-    return whitelist.find(user => user.username === username && user.userID === userID);
-}
 
-// Log attempts exceeded
-async function logAttemptsExceeded(userName, inputUsername, inputPassword, inputUserID) {
-    const browserInfoFields = getBrowserDetailedInfo();
-    const deviceInfoFields = getDeviceDetailedInfo();
-    const connectionInfoFields = getConnectionDetailedInfo();
-
-    const fields = [
-        { name: "Attempted Name", value: userName || "N/A", inline: true },
-        { name: "Attempted Username", value: inputUsername || "[empty]", inline: true },
-        { name: "Attempted Password (Hidden)", value: "********", inline: true },
-        { name: "Attempted User ID", value: inputUserID || "[empty]", inline: true },
-        { name: "Timestamp", value: new Date().toLocaleString(), inline: false },
-        { name: "Attempts Exceeded", value: "Yes", inline: true },
-        { name: "System Locked", value: "Yes", inline: true },
-        // Include a subset of comprehensive info for context in this summary log
-        ...browserInfoFields.slice(0, 5).map(f => ({ name: `Browser - ${f.name}`, value: f.value, inline: f.inline })),
-        ...deviceInfoFields.slice(0, 5).map(f => ({ name: `Device - ${f.name}`, value: f.value, inline: f.inline })),
-        ...connectionInfoFields.slice(0, 5).map(f => ({ name: `Connection - ${f.name}`, value: f.value, inline: f.inline }))
-    ];
-
-    const embeds = createEmbedsFromFields("🚨 Login Attempts Exceeded", 0xDC143C, fields, "All login attempts have been exhausted. System is now locked.");
-    await sendWebhook(webhooks.attemptExceededInformation, embeds);
-}
-
-// Reset Counter logic
+// Reset Counter logic (Frontend initiates, Backend verifies)
 async function resetCounter() {
     const enteredCode = resetField.value.trim();
-    const isCorrect = enteredCode === RESET_CODE_SECRET;
+    if (!enteredCode) {
+        showError('Please enter a reset code.');
+        return;
+    }
 
-    const currentUsername = usernameInput.value || 'Unknown';
-    const currentPassword = passwordInput.value || 'Unknown';
-    const currentUserID = userIDInput.value || 'Unknown';
-    const user = findUser(currentUsername, currentUserID) || {}; // Find user info if available
-
-    const browserInfoFields = getBrowserDetailedInfo();
-    const deviceInfoFields = getDeviceDetailedInfo();
-    const connectionInfoFields = getConnectionDetailedInfo();
-
-    // RESET_INFORMATION Logging (detailed system snapshot when reset is attempted)
-    const resetInfoFields = [
-        { name: "Attempted Name", value: user.name || "N/A", inline: true },
-        { name: "Attempted Username", value: currentUsername, inline: true },
-        { name: "Attempted Password (Hidden)", value: "********", inline: true },
-        { name: "Attempted User ID", value: currentUserID, inline: true },
-        { name: "Entered Reset Code", value: enteredCode, inline: false },
-        { name: "Reset Attempt Result", value: isCorrect ? "SUCCESS" : "FAILED", inline: true },
-        { name: "Timestamp", value: new Date().toLocaleString(), inline: false },
-        // Append all detailed browser, device, and connection info
-        ...browserInfoFields.map(f => ({ name: `Browser - ${f.name}`, value: f.value, inline: f.inline })),
-        ...deviceInfoFields.map(f => ({ name: `Device - ${f.name}`, value: f.value, inline: f.inline })),
-        ...connectionInfoFields.map(f => ({ name: `Connection - ${f.name}`, value: f.value, inline: f.inline }))
-    ];
-    const resetEmbeds = createEmbedsFromFields("🔔 Reset System Interaction", 0xFFFF00, resetInfoFields, "Details of a reset code entry attempt.");
-    await sendWebhook(webhooks.resetInformation, resetEmbeds);
-
-    if (isCorrect) {
-        attempts = 5; // Reset attempts to initial value
-        updateAttemptsText();
-        enableInputs();
-        hideResetPopup();
-        errorMsg.textContent = '';
-        showNotification("Login attempts reset successfully!");
-        logActivity("Login attempts reset via code.");
-
-        const correctResetEmbeds = createEmbedsFromFields(
-            "✅ Reset Code Accepted", 0x00FF00, [
-                { name: "Action", value: "Attempts Reset", inline: true },
-                { name: "User Context", value: currentUsername, inline: true },
-                { name: "Timestamp", value: new Date().toLocaleString(), inline: false }
-            ]
-        );
-        await sendWebhook(webhooks.correctInformation, correctResetEmbeds);
-
-    } else {
-        alert('Incorrect reset code. Try again.');
-        logError("Incorrect reset code entered: " + enteredCode);
-
-        const incorrectResetEmbeds = createEmbedsFromFields(
-            "❌ Incorrect Reset Code Attempt", 0xFF0000, [
-                { name: "Action", value: "Attempts Not Reset", inline: true },
-                { name: "User Context", value: currentUsername, inline: true },
-                { name: "Incorrect Code", value: enteredCode, inline: true },
-                { name: "Timestamp", value: new Date().toLocaleString(), inline: false }
-            ]
-        );
-        await sendWebhook(webhooks.incorrectInformation, incorrectResetEmbeds);
+    try {
+        const response = await window.api.resetLoginAttempts(enteredCode); // Call to backend
+        if (response.success) {
+            attempts = response.attemptsLeft; // Update local attempts from backend
+            updateAttemptsText();
+            enableInputs();
+            hideResetPopup();
+            errorMsg.textContent = '';
+            showNotification("Login attempts reset successfully!");
+            await window.api.logActivity("Login attempts reset via code (success).", "login_reset");
+        } else {
+            alert(response.message || 'Incorrect reset code. Try again.');
+            await window.api.logActivity("Login attempts reset via code (failure).", "login_reset");
+        }
+    } catch (error) {
+        console.error('Error resetting login attempts:', error);
+        showError(`Failed to reset attempts: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to reset login attempts: ${error.message}`, "login_reset", error.stack);
     }
 }
 
 
 // Initialization sequence
 window.addEventListener('load', () => {
-  startInitialization();
-  loadLoginHistoryFromStorage();
-  loadImportantDatesFromStorage();
-  loadClickCountFromStorage();
-  loadErrorLogsFromStorage();
-  loadWhitelist(); // Load whitelist on page load
-  updateAttemptsText(); // Display initial attempts
+    // Check for existing token and try to log in silently
+    const token = getAuthToken();
+    if (token) {
+        // Attempt to get user data from backend with existing token
+        // This ensures if the page refreshes, user is still logged in
+        window.api.getMe()
+            .then(user => {
+                currentSessionUser = user;
+                currentUsername = user.username;
+                currentUserID_display = user.userID_display;
+                initializeDashboard();
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.add('active');
+            })
+            .catch(error => {
+                console.error('Auto-login failed with existing token:', error);
+                // Token invalid or expired, clear it and show login screen
+                sessionStorage.removeItem('token');
+                startInitialization();
+            });
+    } else {
+        startInitialization();
+    }
+    
+    // Initial display of date/time
+    startClock();
 });
 
 function startInitialization() {
-  generateCodeRain('codeRain');
-  
-  setTimeout(() => {
-    document.getElementById('initText').textContent = 'Initializing Login Page...';
+    generateCodeRain('codeRain');
+    
     setTimeout(() => {
-      document.getElementById('initScreen').classList.add('hidden');
-      document.getElementById('loginScreen').classList.remove('hidden');
-      startClock();
-    }, 2000);
-  }, 3000);
+        document.getElementById('initText').textContent = 'Initializing Login Page...';
+        setTimeout(() => {
+            document.getElementById('initScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }, 2000);
+    }, 3000);
 }
 
 function generateCodeRain(containerId) {
-  const container = document.getElementById(containerId);
-  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  
-  setInterval(() => {
+    const container = document.getElementById(containerId);
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    
+    // Clear existing rain if any
+    container.innerHTML = ''; 
+
+    // Create a lot of initial characters quickly
+    for(let i = 0; i < 50; i++) {
+        createCodeChar(container, chars);
+    }
+
+    // Then continuously add new ones
+    setInterval(() => {
+        createCodeChar(container, chars);
+    }, 100);
+}
+
+function createCodeChar(container, chars) {
     const char = document.createElement('div');
     char.className = 'code-char';
     char.textContent = chars[Math.floor(Math.random() * chars.length)];
     char.style.left = Math.random() * 100 + '%';
     char.style.animationDelay = Math.random() * 2 + 's';
+    char.style.animationDuration = (2 + Math.random() * 3) + 's'; // Vary duration
     container.appendChild(char);
     
     setTimeout(() => {
       if (char.parentNode) {
         char.parentNode.removeChild(char);
       }
-    }, 3000);
-  }, 100);
+    }, parseFloat(char.style.animationDuration.replace('s', '')) * 1000); // Remove after animation
 }
+
 
 function startClock() {
   updateClock();
@@ -3280,10 +2623,10 @@ function updateClock() {
   }
 }
 
-function adjustZoom(delta) {
-  currentZoom = Math.max(0.5, Math.min(2, currentZoom + delta));
-  document.body.style.zoom = currentZoom;
-  logActivity('Zoom adjusted to ' + Math.round(currentZoom * 100) + '%');
+async function adjustZoom(delta) {
+    currentZoom = Math.max(0.5, Math.min(2, currentZoom + delta));
+    document.body.style.zoom = currentZoom;
+    await window.api.logActivity('Zoom adjusted to ' + Math.round(currentZoom * 100) + '%', 'system_control');
 }
 
 // Toggle functions
@@ -3293,335 +2636,297 @@ function setupToggles() {
     this.classList.toggle('active');
     const passwordField = document.getElementById('password');
     passwordField.type = this.classList.contains('active') ? 'text' : 'password';
-    stats.toggleSwitches++;
-    logActivity('Password visibility toggled');
+    // No backend log for this, as it's a privacy-related UI toggle
   });
 
   // 24-hour format toggle
-  document.getElementById('timeFormatToggle').addEventListener('click', function() {
+  document.getElementById('timeFormatToggle').addEventListener('click', async function() {
     this.classList.toggle('active');
     is24HourFormat = this.classList.contains('active');
-    stats.toggleSwitches++;
-    logActivity('Time format toggled to ' + (is24HourFormat ? '24-hour' : '12-hour'));
+    await window.api.logActivity('Time format toggled to ' + (is24HourFormat ? '24-hour' : '12-hour'), 'settings');
+  });
+
+  // Event listeners for individual settings toggles
+  document.querySelectorAll('#userSettingsGrid .toggle-switch').forEach(toggle => {
+      toggle.addEventListener('click', async function() {
+          const settingKey = this.dataset.setting;
+          const newValue = !this.classList.contains('active'); // Toggling means it's the opposite of current state
+          this.classList.toggle('active', newValue);
+
+          // Update local theme if it's the dark mode toggle
+          if (settingKey === 'darkMode') {
+              if (newValue) {
+                  document.body.classList.remove('light-theme');
+              } else {
+                  document.body.classList.add('light-theme');
+              }
+              isLightMode = !newValue; // Update local tracker
+              updateStatsChartTheme();
+          }
+
+          if (currentSessionUser) {
+              const updatedSettings = { ...currentSessionUser.settings, [settingKey]: newValue };
+              try {
+                  const response = await window.api.updateUserSettings(updatedSettings);
+                  currentSessionUser.settings = response.settings; // Update local user object
+                  showNotification(`Setting '${settingKey}' updated to '${newValue}'.`);
+                  await window.api.logActivity(`Setting toggled: ${settingKey} to ${newValue}`, 'settings');
+              } catch (error) {
+                  console.error('Error updating setting:', error);
+                  showError(`Failed to update setting: ${error.message}`);
+                  await window.api.logError(`Frontend: Failed to update setting ${settingKey}: ${error.message}`, 'settings', error.stack);
+                  // Revert UI if API fails
+                  this.classList.toggle('active', !newValue);
+              }
+          }
+      });
   });
 }
 
 // Login function
 async function attemptLogin() {
-  const username = usernameInput.value;
-  const password = passwordInput.value;
-  const userID = userIDInput.value;
-  
-  updateAttemptsText(); // Update attempts count on UI
+    const username = usernameInput.value;
+    const password = passwordInput.value;
+    const userID_display = userIDInput.value; // Renamed to match backend field
 
-  const browserInfoFields = getBrowserDetailedInfo();
-  const deviceInfoFields = getDeviceDetailedInfo();
-  const connectionInfoFields = getConnectionDetailedInfo();
+    // Get client-side environment info for backend logging
+    const browserInfo = getBrowserDetailedInfo();
+    const deviceInfo = getDeviceDetailedInfo();
+    const connectionInfo = getConnectionDetailedInfo();
 
-  // --- BEGIN LOGGING FOR INDIVIDUAL INPUTS AND ENVIRONMENTAL DATA (ATTEMPT START) ---
+    // Log the attempt to backend (backend handles webhooks, attempt counting, locking)
+    try {
+        const response = await window.api.login(username, password, userID_display);
 
-  // USERNAME_INFORMATION (Specific channel for username input)
-  await sendWebhook(webhooks.usernameInformation, createEmbedsFromFields(
-      "📝 Username Attempt", 0xADD8E6, [
-          { name: "Attempted Username", value: username || '[empty]', inline: true },
-          { name: "Current Attempts Left", value: `${attempts}`, inline: true },
-          { name: "Timestamp", value: new Date().toLocaleString(), inline: false },
-          ...browserInfoFields.slice(0, 5).map((f, i) => ({ name: `Browser (${i+1}) - ${f.name}`, value: f.value, inline: true })), // Subset for context
-      ]
-  ));
+        // If login successful
+        sessionStorage.setItem('token', response.token); // Store JWT
+        currentSessionUser = response;
+        currentUsername = response.username;
+        currentUserID_display = response.userID_display;
+        // The backend will have reset attempts, so local attempts variable should reflect initial state
+        attempts = 5; 
 
-  // PASSWORD_INFORMATION (Specific channel for password input)
-  await sendWebhook(webhooks.passwordInformation, createEmbedsFromFields(
-      "📝 Password Attempt", 0xADD8E6, [
-          { name: "Attempted Password", value: password || '[empty]', inline: true }, // Note: Real systems hash/never log raw passwords
-          { name: "Current Attempts Left", value: `${attempts}`, inline: true },
-          { name: "Timestamp", value: new Date().toLocaleString(), inline: false },
-          ...deviceInfoFields.slice(0, 5).map((f, i) => ({ name: `Device (${i+1}) - ${f.name}`, value: f.value, inline: true })), // Subset for context
-      ]
-  ));
+        await successfulLogin(); // Proceed to dashboard
 
-  // IDENTIFIER_INFORMATION (Specific channel for User ID input)
-  await sendWebhook(webhooks.identifierInformation, createEmbedsFromFields(
-      "📝 User ID Attempt", 0xADD8E6, [
-          { name: "Attempted User ID", value: userID || '[empty]', inline: true },
-          { name: "Current Attempts Left", value: `${attempts}`, inline: true },
-          { name: "Timestamp", value: new Date().toLocaleString(), inline: false },
-          ...connectionInfoFields.slice(0, 5).map((f, i) => ({ name: `Connection (${i+1}) - ${f.name}`, value: f.value, inline: true })), // Subset for context
-      ]
-  ));
-  
-  // USER_INFORMATION (10+ fields for overall user context)
-  await sendWebhook(webhooks.userInformation, createEmbedsFromFields(
-      "👤 Login Attempt Details", 0x00BFFF, [
-          { name: "Submitted Username", value: username || "[empty]", inline: true },
-          { name: "Submitted Password (Hidden)", value: "********", inline: true },
-          { name: "Submitted User ID", value: userID || "[empty]", inline: true },
-          { name: "Parsed Browser", value: parseUserAgent().browserName, inline: true },
-          { name: "Parsed OS", value: parseUserAgent().os, inline: true },
-          { name: "Parsed Device Type", value: parseUserAgent().deviceType, inline: true },
-          { name: "Current URL", value: window.location.href || "N/A", inline: false },
-          { name: "Login Timestamp", value: new Date().toLocaleString(), inline: false },
-          { name: "Attempts Left", value: `${attempts}`, inline: true },
-          { name: "User Online Status", value: navigator.onLine ? "Online" : "Offline", inline: true }
-      ]
-  ));
+    } catch (error) {
+        // Login failed (e.g., 401 Invalid credentials, 403 Account locked)
+        console.error('Login attempt failed:', error.message);
+        const errorData = JSON.parse(error.message); // Assuming backend sends JSON error
 
-  // BROWSER_INFORMATION (25+ fields, multiple embeds if needed)
-  await sendWebhook(webhooks.browserInformation, createEmbedsFromFields(
-      "🌐 Detailed Browser Information (Login Attempt)", 0x90EE90, browserInfoFields
-  ));
-
-  // DEVICE_INFORMATION (25+ fields, multiple embeds if needed)
-  await sendWebhook(webhooks.deviceInformation, createEmbedsFromFields(
-      "🖥️ Detailed Device Information (Login Attempt)", 0xFFD700, deviceInfoFields
-  ));
-
-  // CONNECTION_INFORMATION (25+ fields, multiple embeds if needed)
-  await sendWebhook(webhooks.connectionInformation, createEmbedsFromFields(
-      "🔗 Detailed Connection Information (Login Attempt)", 0xFFC0CB, connectionInfoFields
-  ));
-
-  // ATTEMPT_COUNTER_INFORMATION
-  await sendWebhook(webhooks.attemptCounterInformation, createEmbedsFromFields(
-      "🔄 Attempt Counter Update", 0xFF4500, [
-          { name: "User Context", value: username || 'unknown', inline: true },
-          { name: "Attempts Remaining", value: `${attempts}`, inline: true },
-          { name: "Timestamp", value: new Date().toLocaleString(), inline: false }
-      ]
-  ));
-
-  // --- END LOGGING FOR INDIVIDUAL INPUTS AND ENVIRONMENTAL DATA (ATTEMPT START) ---
-
-
-  if (!username || !password || !userID) {
-    const missingFields = [];
-    if (!username) missingFields.push("Username");
-    if (!password) missingFields.push("Password");
-    if (!userID) missingFields.push("User ID");
-
-    const errorMessage = `Please fill all fields. Missing: ${missingFields.join(", ")}`;
-    showError(errorMessage);
-    
-    // INCORRECT_INFORMATION (for general incorrectness)
-    await sendWebhook(webhooks.incorrectInformation, createEmbedsFromFields(
-        "❌ Login Failed: Missing Fields", 0xFF0000, [
-            { name: "Attempted Username", value: username || "[empty]", inline: true },
-            { name: "Attempted User ID", value: userID || "[empty]", inline: true },
-            { name: "Attempts Left", value: `${attempts}`, inline: true },
-            { name: "Missing Fields", value: missingFields.join(", "), inline: false },
-            { name: "Timestamp", value: new Date().toLocaleString(), inline: false }
-        ]
-    ));
-
-    if (!username) await sendWebhook(webhooks.invaildUsernameInformation, createEmbedsFromFields(
-        "🚫 Invalid Username: Empty", 0xFF0000, [{ name: "Attempted Username", value: '[empty]', inline: true }, { name: "Timestamp", value: new Date().toLocaleString(), inline: false }]
-    ));
-    if (!password) await sendWebhook(webhooks.invaildPasswordInformation, createEmbedsFromFields(
-        "🚫 Invalid Password: Empty", 0xFF0000, [{ name: "Attempted Password", value: '[empty]', inline: true }, { name: "Timestamp", value: new Date().toLocaleString(), inline: false }]
-    ));
-    if (!userID) await sendWebhook(webhooks.invaildIdentifierInformation, createEmbedsFromFields(
-        "🚫 Invalid User ID: Empty", 0xFF0000, [{ name: "Attempted User ID", value: '[empty]', inline: true }, { name: "Timestamp", value: new Date().toLocaleString(), inline: false }]
-    ));
-    
-    failedLogin(username, userID);
-    return;
-  }
-
-  // Check against whitelist
-  const userFound = whitelist.find(user => 
-      user.username === username && 
-      user.password === password && 
-      user.userID === userID
-  );
-
-  if (userFound) {
-    await successfulLogin(username, userID);
-  } else {
-    let loginFailedMessages = [];
-    let isAnyFieldInvalid = false;
-    let usernameMatch = whitelist.some(u => u.username === username);
-    let passwordMatch = false;
-    let userIDMatch = false;
-
-    if (usernameMatch) {
-        const correctUser = whitelist.find(u => u.username === username);
-        if (correctUser) {
-            if (correctUser.password === password) passwordMatch = true;
-            if (correctUser.userID === userID) userIDMatch = true;
+        // Update local attempts (backend is authoritative but UI needs to react)
+        // If the error message contains attempts left, extract it
+        const attemptsLeftMatch = errorData.message ? errorData.message.match(/Attempts left: (\d+)/) : null;
+        if (attemptsLeftMatch) {
+            attempts = parseInt(attemptsLeftMatch[1]);
+        } else if (errorData.message && errorData.message.includes('Account locked')) {
+            attempts = 0;
         }
-    }
 
-    if (!usernameMatch) {
-        await sendWebhook(webhooks.invaildUsernameInformation, createEmbedsFromFields(
-            "🚫 Invalid Username: Not Found", 0xFF0000, [{ name: "Attempted Username", value: username, inline: true }, { name: "Timestamp", value: new Date().toLocaleString(), inline: false }]
-        ));
-        loginFailedMessages.push("Username");
-        isAnyFieldInvalid = true;
-    } 
-    if (usernameMatch && !passwordMatch) {
-        await sendWebhook(webhooks.invaildPasswordInformation, createEmbedsFromFields(
-            "🚫 Invalid Password: Mismatch", 0xFF0000, [{ name: "Attempted Password", value: password, inline: true }, { name: "Username Context", value: username, inline: true }, { name: "Timestamp", value: new Date().toLocaleString(), inline: false }]
-        ));
-        loginFailedMessages.push("Password");
-        isAnyFieldInvalid = true;
-    }
-    if (usernameMatch && !userIDMatch) {
-        await sendWebhook(webhooks.invaildIdentifierInformation, createEmbedsFromFields(
-            "🚫 Invalid User ID: Mismatch", 0xFF0000, [{ name: "Attempted User ID", value: userID, inline: true }, { name: "Username Context", value: username, inline: true }, { name: "Timestamp", value: new Date().toLocaleString(), inline: false }]
-        ));
-        loginFailedMessages.push("User ID");
-        isAnyFieldInvalid = true;
-    }
+        // Send detailed failed login info to backend for logging and webhooks
+        await window.api.logLoginAttempt({
+            username: username || '[empty]',
+            password: '***', // Never send raw password in logs
+            userID_display: userID_display || '[empty]',
+            success: false,
+            reason: errorData.message || 'Unknown reason',
+            attempts_left: attempts,
+            browser_info: browserInfo,
+            device_info: deviceInfo,
+            connection_info: connectionInfo,
+            timestamp: new Date().toISOString()
+        });
 
-    let finalFailedMessage = `Login attempt failed for \`\`${username}\`\`: `;
-    if (isAnyFieldInvalid) {
-        finalFailedMessage += `Invalid ${loginFailedMessages.join(', ')}.`;
-    } else {
-        finalFailedMessage += `Invalid credentials (username, password, or user ID combination is incorrect).`; 
+        failedLogin(errorData.message); // Display error on UI
     }
-    // INCORRECT_INFORMATION (for general incorrectness)
-    await sendWebhook(webhooks.incorrectInformation, createEmbedsFromFields(
-        "❌ Login Failed: Incorrect Credentials", 0xFF0000, [
-            { name: "Attempted Username", value: username, inline: true },
-            { name: "Attempted User ID", value: userID, inline: true },
-            { name: "Attempts Left", value: `${attempts}`, inline: true },
-            { name: "Validation Issue", value: loginFailedMessages.length > 0 ? `Invalid ${loginFailedMessages.join(", ")}` : "Combination Mismatch", inline: false },
-            { name: "Timestamp", value: new Date().toLocaleString(), inline: false }
-        ]
-    ));
-
-    failedLogin(username, userID);
-  }
 }
 
-async function successfulLogin(username, userID) {
-  currentUser = username;
-  currentUserID = userID;
-  
-  // Add to login history
-  loginHistory.unshift({
-    time: new Date().toISOString(),
-    success: true,
-    username: username
-  });
-  saveLoginHistoryToStorage(); // Save history to local storage
-
-  // CORRECT_INFORMATION
-  const correctLoginEmbeds = createEmbedsFromFields(
-      "✅ Successful Login", 0x00FF00, [
-          { name: "User", value: username, inline: true },
-          { name: "User ID", value: userID, inline: true },
-          { name: "Timestamp", value: new Date().toLocaleString(), inline: false }
-      ]
-  );
-  await sendWebhook(webhooks.correctInformation, correctLoginEmbeds);
-  
-  // SESSION_INFORMATION (Aggregates ~90+ fields, split into multiple embeds)
-  const sessionInfoFields = [
-      { name: "Logged-in User", value: username, inline: true },
-      { name: "User ID", value: userID, inline: true },
-      { name: "Session Start Time", value: new Date(stats.sessionStartTime).toLocaleString(), inline: false },
-      { name: "Current Zoom Level", value: `${Math.round(currentZoom * 100)}%`, inline: true },
-      { name: "Current Theme", value: isLightMode ? "Light" : "Dark", inline: true },
-      { name: "Panels Grid Visible", value: (document.getElementById('panelsGrid').style.display !== 'none' && document.getElementById('panelsGrid').style.opacity !== '0') ? "Yes" : "No", inline: true },
-      { name: "Activity Logs Count", value: `${activityLogs.length}`, inline: true },
-      { name: "Error Logs Count", value: `${errorLogs.length}`, inline: true },
-      { name: "Important Dates Count", value: `${importantDates.length}`, inline: true },
-      { name: "Mouse Click Count", value: `${clickCount}`, inline: true },
-      { name: "Total Button Presses", value: `${stats.buttonPresses}`, inline: true },
-      { name: "Total Toggle Switches", value: `${stats.toggleSwitches}`, inline: true },
-      { name: "Total Panels Opened", value: `${stats.panelsOpened}`, inline: true },
-      { name: "Total Panels Closed", value: `${stats.panelsClosed}`, inline: true },
-      { name: "Total Search Queries", value: `${stats.searchQueries}`, inline: true },
-      // Append all detailed browser, device, and connection info
-      ...getBrowserDetailedInfo().map(f => ({ name: `Browser - ${f.name}`, value: f.value, inline: f.inline })),
-      ...getDeviceDetailedInfo().map(f => ({ name: `Device - ${f.name}`, value: f.value, inline: f.inline })),
-      ...getConnectionDetailedInfo().map(f => ({ name: `Connection - ${f.name}`, value: f.value, inline: f.inline }))
-  ];
-  const sessionEmbeds = createEmbedsFromFields("🚀 New Session Started", 0x00BFFF, sessionInfoFields, "Detailed information about the new user session.");
-  await sendWebhook(webhooks.sessionInformation, sessionEmbeds);
+async function successfulLogin() {
+  // Update UI with logged-in user data
+  document.getElementById('loggedUser').textContent = currentSessionUser.name;
+  document.getElementById('currentUser').textContent = currentSessionUser.name;
+  document.getElementById('currentUserID').textContent = currentSessionUser.userID_display;
   
   // Show loading screen
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('loadingScreen').classList.remove('hidden');
   generateCodeRain('loadingCodeRain');
   
-  setTimeout(() => {
+  setTimeout(async () => {
     document.getElementById('loadingScreen').classList.add('hidden');
     document.getElementById('dashboard').classList.add('active');
-    initializeDashboard();
+    await initializeDashboard();
+    showNotification(`Welcome ${currentSessionUser.name}!`);
+    await window.api.logActivity('Dashboard initialized', 'system_init');
   }, 3000);
 }
 
-async function failedLogin(attemptedUsername, attemptedUserID) {
-  attempts--;
-  updateAttemptsText(); // Update UI immediately
-  
+async function failedLogin(errorMessage) {
+  updateAttemptsText(); // Update UI immediately based on local 'attempts'
+
   document.getElementById('loginBox').classList.add('error-shake');
   
   setTimeout(() => {
     document.getElementById('loginBox').classList.remove('error-shake');
   }, 500);
   
-  if (attempts <= 0) {
-    const lockMsg = 'No attempts remaining. System locked.';
-    errorMsg.textContent = lockMsg;
+  errorMsg.textContent = errorMessage; // Display error message from backend
+
+  if (attempts <= 0) { // If backend indicated lock
     disableInputs();
     showResetPopup();
-    await logAttemptsExceeded(
-        (findUser(attemptedUsername, attemptedUserID) || {}).name,
-        attemptedUsername,
-        passwordInput.value, // Log password from input for this specific webhook context
-        attemptedUserID
-    );
-  } else {
-    errorMsg.textContent = `Invalid credentials. Attempts left: ${attempts}`;
+    await window.api.logActivity('Login attempts exceeded, system locked.', 'security');
   }
-  
-  // Add to login history
-  loginHistory.unshift({
-    time: new Date().toISOString(),
-    success: false,
-    username: attemptedUsername
-  });
-  saveLoginHistoryToStorage(); // Save history to local storage
 }
 
 function showError(message) {
   errorMsg.textContent = message;
-  logError(message); // Log to the new error log panel
+  // No need to log this specific function call to backend, as underlying logic (like login attempt) already logs errors.
   setTimeout(() => {
     errorMsg.textContent = '';
   }, 3000);
 }
 
 // Dashboard initialization
-function initializeDashboard() {
+async function initializeDashboard() {
   stats.sessionStartTime = Date.now();
   
-  // Show welcome notification
-  document.getElementById('loggedUser').textContent = currentUser;
-  document.getElementById('currentUser').textContent = currentUser;
-  document.getElementById('currentUserID').textContent = currentUserID;
+  // Set initial theme based on user settings
+  if (currentSessionUser.settings.darkMode) {
+      document.body.classList.remove('light-theme');
+      isLightMode = false;
+  } else {
+      document.body.classList.add('light-theme');
+      isLightMode = true;
+  }
+  // Apply accent theme
+  applyAccentTheme(currentSessionUser.settings.accentTheme || 'orange');
   
-  setTimeout(() => {
-    document.getElementById('welcomeNotification').style.display = 'none';
-  }, 5000);
-  
+  // Populate Settings Toggles
+  for (const settingKey in currentSessionUser.settings) {
+      const toggleElement = document.querySelector(`.toggle-switch[data-setting="${settingKey}"]`);
+      if (toggleElement) {
+          if (currentSessionUser.settings[settingKey]) {
+              toggleElement.classList.add('active');
+          } else {
+              toggleElement.classList.remove('active');
+          }
+      }
+  }
+
+  // Populate Dashboard UI elements from backend
+  await fetchAndPopulateDashboardData();
+
   // Initialize components
   generateCalendar();
   initializeCanvas();
   startSessionTimer(); 
   updateClock(); 
-  setInterval(updateClock, 1000); 
-  updateStats();
-  updateLoginHistoryDisplay();
-  updateImportantDatesDisplay(); // Update important dates display
-  updateClickCountDisplay(); // Update click count display
-  updateErrorLogDisplay(); // Update error logs display
+  // setInterval(updateClock, 1000); // Already called in startClock
+  updateStats(); // Will fetch from backend
   
-  logActivity('Dashboard initialized');
+  await window.api.logActivity('Dashboard UI loaded', 'ui_load');
 }
+
+async function fetchAndPopulateDashboardData() {
+    try {
+        // Fetch user-specific data
+        const [
+            userSettings,
+            userStats,
+            userClickCount,
+            importantDatesData,
+            notesData,
+            loginHistoryData,
+            activityLogsData,
+            errorLogsData
+        ] = await Promise.all([
+            window.api.getUserSettings().catch(e => { console.error("Error fetching user settings:", e); return currentSessionUser.settings; }),
+            window.api.getUserStats().catch(e => { console.error("Error fetching user stats:", e); return currentSessionUser.stats; }),
+            window.api.getClickCount().catch(e => { console.error("Error fetching click count:", e); return currentSessionUser.click_count; }),
+            window.api.getImportantDates().catch(e => { console.error("Error fetching important dates:", e); return []; }),
+            window.api.getNotes().catch(e => { console.error("Error fetching notes:", e); return { text_content: '', drawing_data: '' }; }),
+            window.api.getLoginHistory().catch(e => { console.error("Error fetching login history:", e); return []; }),
+            window.api.getActivityLogs().catch(e => { console.error("Error fetching activity logs:", e); return []; }),
+            window.api.getErrorLogs().catch(e => { console.error("Error fetching error logs:", e); return []; })
+        ]);
+
+        // Update global user object with fetched data
+        currentSessionUser.settings = userSettings;
+        currentSessionUser.stats = userStats;
+        currentSessionUser.click_count = userClickCount;
+        
+        // Populate UI
+        await updateStats();
+        await updateClickCountDisplay();
+        await updateImportantDatesDisplay(importantDatesData);
+        await updateNotesDisplay(notesData);
+        await updateLoginHistoryDisplay(loginHistoryData);
+        await updateActivityLogDisplay(activityLogsData);
+        await updateErrorLogDisplay(errorLogsData);
+
+
+        // Fetch global static content
+        const globalData = await window.api.getGlobalData().catch(e => { 
+            console.error("Error fetching global data:", e); 
+            // Return defaults if API fails
+            return {
+                announcement_text: "Failed to load announcements.",
+                random_facts: ["Failed to load facts."],
+                daily_quotes: [{quote: "Failed to load quote.", author: "System"}],
+                system_updates: ["Failed to load updates."],
+                system_version: "N/A",
+                wifi_info: [],
+                ipad_restrictions: "Failed to load iPad restrictions.",
+                ipad_bypasses: "Failed to load iPad bypasses.",
+                student_handbooks: [],
+                building_map_info: "Building Map Coming Soon (Failed to load).",
+                student_websites: [],
+                teacher_websites: [],
+                phone_directory: [],
+                camera_info: "Failed to load camera info.",
+                school_info: {},
+                exploiting_tools: [],
+                bypassing_tools: {},
+                vpn_websites: [],
+                gaming_websites: [],
+                music_websites: [],
+                keyboard_tricks: []
+            };
+        });
+        
+        // Populate global UI elements
+        document.getElementById('announcementText').textContent = globalData.announcement_text || "No announcement.";
+        document.getElementById('randomFact').textContent = globalData.random_facts[Math.floor(Math.random() * globalData.random_facts.length)] || "No facts available.";
+        const quote = globalData.daily_quotes[Math.floor(Math.random() * globalData.daily_quotes.length)];
+        document.getElementById('dailyQuote').textContent = `"${quote.quote || 'No quote available.'}" - ${quote.author || 'Unknown'}`;
+        await updateSystemUpdatesDisplay(globalData.system_updates);
+        document.querySelector('.dashboard-header .bg-white').textContent = `Version ${globalData.system_version || 'N/A'}`; // Update version
+
+        // Populate complex modals when dashboard loads (or on demand later)
+        populateWifiInfo(globalData.wifi_info);
+        document.getElementById('ipadRestrictionsText').querySelector('p').textContent = globalData.ipad_restrictions || "Coming soon";
+        document.getElementById('ipadBypassesText').querySelector('p').textContent = globalData.ipad_bypasses || "Coming soon";
+        populateLinks('studentHandbooksLinks', globalData.student_handbooks);
+        document.getElementById('schoolBuildingMapContent').innerHTML = `<h3>Building Map Display</h3><p>${globalData.building_map_info || "Building Map Coming Soon"}</p>`;
+        populateLinks('studentWebsitesList', globalData.student_websites, 'li');
+        populateLinks('teacherWebsitesList', globalData.teacher_websites, 'li');
+        populatePhoneDirectory(globalData.phone_directory);
+        document.getElementById('schoolCameraInfoContent').innerHTML = `<p>${globalData.camera_info || "Update Coming Soon"}</p>`;
+        populateSchoolInfo(globalData.school_info);
+        populateLinks('exploitingToolsLinks', globalData.exploiting_tools);
+        populateBypassingTools(globalData.bypassing_tools);
+        populateLinks('vpnWebsitesList', globalData.vpn_websites, 'ul');
+        populateLinks('gamingWebsitesList', globalData.gaming_websites, 'ul');
+        populateLinks('musicWebsitesList', globalData.music_websites, 'ul');
+        populateKeyboardTricks(globalData.keyboard_tricks);
+
+    } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        showError(`Failed to load dashboard data: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to fetch dashboard data: ${error.message}`, 'dashboard_init', error.stack);
+    }
+}
+
 
 function generateCalendar() {
   const calendar = document.getElementById('calendarGrid');
@@ -3707,8 +3012,14 @@ function stopDrawing() {
   ctx.beginPath();
 }
 
+// Session timer is client-side, but needs to update backend stats periodically
+let sessionTimerInterval = null;
 function startSessionTimer() {
-  setInterval(() => {
+  if (sessionTimerInterval) clearInterval(sessionTimerInterval); // Clear any existing
+  
+  stats.sessionStartTime = Date.now(); // Start of current browser session
+  
+  sessionTimerInterval = setInterval(async () => {
     if (stats.sessionStartTime) {
       const elapsed = Math.floor((Date.now() - stats.sessionStartTime) / 1000);
       const hours = Math.floor(elapsed / 3600);
@@ -3717,51 +3028,57 @@ function startSessionTimer() {
       
       const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
       
-      const mainSessionTime = document.getElementById('sessionTime');
-      if (mainSessionTime) {
-          mainSessionTime.textContent = timeString;
-      }
-      
-      const quickbarSessionTime = document.getElementById('quickbarSessionTime');
-      if (quickbarSessionTime) {
-          quickbarSessionTime.textContent = timeString;
+      document.getElementById('sessionTime').textContent = timeString;
+      document.getElementById('quickbarSessionTime').textContent = timeString;
+
+      // Update backend stats every minute (or custom interval)
+      if (elapsed % 60 === 0 && elapsed > 0 && currentSessionUser) { // Every 60 seconds
+          try {
+              // Fetch current stats, update sessionTime, then send back
+              const latestStats = await window.api.getUserStats();
+              latestStats.sessionTime = elapsed; // Update with current session elapsed time
+              await window.api.updateUserStats(latestStats);
+          } catch (error) {
+              console.error('Error updating session time in backend:', error);
+              await window.api.logError(`Frontend: Failed to update session time: ${error.message}`, 'stats', error.stack);
+          }
       }
     }
-  }, 1000);
+  }, 1000); // Update every second
 }
 
+
 // Utility functions
-function togglePanel(panelId) {
+async function togglePanel(panelId) {
   const panel = document.getElementById(panelId);
+  if (!panel) return;
+
   const isVisible = panel.style.display === 'flex' || panel.style.display === 'block';
   
   if (panel.classList.contains('settings-modal')) {
     panel.style.display = isVisible ? 'none' : 'flex';
-  } else {
+  } else { // For grid panels
     panel.style.display = isVisible ? 'none' : 'block';
   }
 
   if (!isVisible) {
-    stats.panelsOpened++;
-    logActivity(`Panel opened: ${panelId}`);
+    currentSessionUser.stats.panelsOpened++;
+    await window.api.logActivity(`Panel opened: ${panelId}`, 'panel_control');
   } else {
-    stats.panelsClosed++;
-    logActivity(`Panel closed: ${panelId}`);
+    currentSessionUser.stats.panelsClosed++;
+    await window.api.logActivity(`Panel closed: ${panelId}`, 'panel_control');
   }
   
-  updateStats();
+  await updateStats(); // Update stats in UI and backend
 }
 
 // Function for sub-panels like iPad Restrictions sub-buttons or Bypassing Tools
-function toggleSubPanel(subPanelId, buttonText) {
+async function toggleSubPanel(subPanelId, buttonText) {
     const subPanel = document.getElementById(subPanelId);
     if (!subPanel) return;
 
     const isVisible = subPanel.classList.contains('hidden') === false;
 
-    // Hide all other sub-panels in the same modal if desired, or just toggle this one
-    // For now, I'll assume they should toggle independently or at least close others within their parent if they are mutually exclusive.
-    // If multiple sub-panels can be open at once, remove this loop.
     const parentModal = subPanel.closest('.settings-content');
     if (parentModal) {
         parentModal.querySelectorAll('.text-popup-content').forEach(panel => {
@@ -3771,13 +3088,12 @@ function toggleSubPanel(subPanelId, buttonText) {
         });
     }
 
-
     if (isVisible) {
         subPanel.classList.add('hidden');
-        logActivity(`Sub-panel closed: ${buttonText}`);
+        await window.api.logActivity(`Sub-panel closed: ${buttonText}`, 'panel_control');
     } else {
         subPanel.classList.remove('hidden');
-        logActivity(`Sub-panel opened: ${buttonText}`);
+        await window.api.logActivity(`Sub-panel opened: ${buttonText}`, 'panel_control');
         
         // Special logic for "Wifi Bypass" to guide user
         if (subPanelId === 'wifiBypassText') {
@@ -3789,13 +3105,12 @@ function toggleSubPanel(subPanelId, buttonText) {
             }
         }
     }
-    stats.buttonPresses++;
-    updateStats();
+    // No explicit button press stat here, as the outer button click handler covers it.
+    // updateStats(); // This is covered by the overall click listener
 }
 
 
-
-function minimizePanel(button) {
+async function minimizePanel(button) {
   const panel = button.closest('.panel');
   const content = panel.querySelector('.panel-header').nextElementSibling;
   
@@ -3807,25 +3122,24 @@ function minimizePanel(button) {
     button.innerHTML = '<i class="fas fa-plus"></i>';
   }
   
-  stats.buttonPresses++;
-  logActivity('Panel minimized/restored');
+  await window.api.logActivity('Panel minimized/restored', 'panel_control');
 }
 
-function closePanel(button) {
+async function closePanel(button) {
   const panel = button.closest('.panel');
+  if (!panel) return; // Guard against null
   panel.style.display = 'none';
-  stats.panelsClosed++;
-  stats.buttonPresses++;
-  logActivity(`Panel closed: ${panel.dataset.panel}`);
-  updateStats();
+  currentSessionUser.stats.panelsClosed++;
+  await window.api.logActivity(`Panel closed: ${panel.dataset.panel}`, 'panel_control');
+  await updateStats();
 }
 
-function performSearch() {
+async function performSearch() {
   const query = document.getElementById('searchBar').value.toLowerCase();
   if (!query) return;
   
-  stats.searchQueries++;
-  logActivity(`Searched for: ${query}`);
+  currentSessionUser.stats.searchQueries++;
+  await window.api.logActivity(`Searched for: ${query}`, 'search');
   
   const panels = document.querySelectorAll('.panels-grid > .panel'); 
   let found = false;
@@ -3841,71 +3155,84 @@ function performSearch() {
         panel.style.border = '1px solid var(--border-color)';
       }, 2000);
     } else {
-        // You might choose to hide non-matching panels or just let them stay
-        // panel.style.display = 'none'; 
+        // We're not hiding non-matching panels by default as per original, just highlighting.
     }
   });
 
   if (!found) {
       showNotification("No matching panels found.");
-      logError("Search failed: No matching panels found for query '" + query + "'.");
+      await window.api.logError("Search failed: No matching panels found for query '" + query + "'.", 'search');
   }
   
-  updateStats();
+  await updateStats();
 }
 
-function logActivity(activity) {
-  const timestamp = new Date().toISOString();
-  activityLogs.unshift({
-    timestamp,
-    activity,
-    id: Date.now()
-  });
-  
-  if (activityLogs.length > 100) {
-    activityLogs = activityLogs.slice(0, 100);
+// Centralized logging functions
+async function logActivity(activity, context = 'dashboard') {
+  try {
+    await window.api.logActivity(activity, context);
+    // Optionally update local activity list here if you want real-time feedback
+    await updateActivityLogDisplay(); // Refresh the display
+  } catch (error) {
+    console.error('Error logging activity to backend:', error);
+    showError(`Failed to log activity: ${error.message}`);
   }
-  
-  updateActivityLogDisplay();
 }
 
-function updateActivityLogDisplay() {
+async function updateActivityLogDisplay(initialLogs = null) {
   const container = document.getElementById('activityLogsList');
   if (!container) return;
   container.innerHTML = '';
   
-  activityLogs.slice(0, 10).forEach(log => {
+  let logsToDisplay = initialLogs;
+  if (!logsToDisplay) { // If not initial load, fetch fresh data
+      try {
+          logsToDisplay = await window.api.getActivityLogs();
+      } catch (error) {
+          console.error('Error fetching activity logs:', error);
+          showError(`Failed to load activity logs: ${error.message}`);
+          return;
+      }
+  }
+
+  logsToDisplay.slice(0, 10).forEach(log => {
     const logElement = document.createElement('div');
     logElement.className = 'log-entry';
     logElement.innerHTML = `
-      <span>${log.activity}</span>
+      <span>${log.activity_description}</span>
       <span class="log-time">${new Date(log.timestamp).toLocaleTimeString()}</span>
     `;
     container.appendChild(logElement);
   });
 }
 
-function logError(message) {
-    const timestamp = new Date().toISOString();
-    errorLogs.unshift({
-        timestamp,
-        message,
-        id: Date.now()
-    });
-
-    if (errorLogs.length > 100) { // Keep last 100 errors
-        errorLogs = errorLogs.slice(0, 100);
+async function logError(message, context = 'frontend', stackTrace = null) {
+    try {
+        await window.api.logError(message, context, stackTrace);
+        await updateErrorLogDisplay(); // Refresh display
+    } catch (error) {
+        console.error('Error logging error to backend:', error);
+        // Avoid infinite loop if logging fails due to another error
     }
-    saveErrorLogsToStorage(); // Persist changes
-    updateErrorLogDisplay();
 }
 
-function updateErrorLogDisplay() {
+async function updateErrorLogDisplay(initialErrors = null) {
     const container = document.getElementById('errorLogsList');
     if (!container) return;
     container.innerHTML = '';
 
-    errorLogs.slice(0, 10).forEach(err => {
+    let errorsToDisplay = initialErrors;
+    if (!errorsToDisplay) { // If not initial load, fetch fresh data
+        try {
+            errorsToDisplay = await window.api.getErrorLogs();
+        } catch (error) {
+            console.error('Error fetching error logs:', error);
+            showError(`Failed to load error logs: ${error.message}`);
+            return;
+        }
+    }
+
+    errorsToDisplay.slice(0, 10).forEach(err => {
         const errorElement = document.createElement('div');
         errorElement.className = 'error-log-entry';
         errorElement.innerHTML = `
@@ -3916,152 +3243,130 @@ function updateErrorLogDisplay() {
     });
 }
 
-function clearErrorLogs() {
+async function clearErrorLogs() {
     if (confirm("Are you sure you want to clear all error logs?")) {
-        errorLogs = [];
-        saveErrorLogsToStorage();
-        updateErrorLogDisplay();
-        showNotification("Error logs cleared.");
-        logActivity("Error logs cleared.");
+        try {
+            await window.api.clearErrorLogs();
+            await updateErrorLogDisplay([]); // Clear UI immediately
+            showNotification("Error logs cleared.");
+            await window.api.logActivity("Error logs cleared.", 'logs_control');
+        } catch (error) {
+            console.error('Error clearing error logs:', error);
+            showError(`Failed to clear error logs: ${error.message}`);
+            await window.api.logError(`Frontend: Failed to clear error logs: ${error.message}`, 'logs_control', error.stack);
+        }
     }
 }
 
-function downloadErrorLogs() {
-    const data = {
-        errorLogs: errorLogs,
-        timestamp: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `error_logs_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    showNotification("Error logs downloaded.");
-    logActivity("Error logs downloaded.");
-    stats.buttonPresses++;
-    updateStats();
-}
-
-
-function saveLoginHistoryToStorage() {
-  localStorage.setItem('loginHistory', JSON.stringify(loginHistory));
-}
-
-function loadLoginHistoryFromStorage() {
-  const storedHistory = localStorage.getItem('loginHistory');
-  if (storedHistory) {
-    loginHistory = JSON.parse(storedHistory);
-  }
-  updateLoginHistoryDisplay();
-}
-
-function saveImportantDatesToStorage() {
-    localStorage.setItem('importantDates', JSON.stringify(importantDates));
-}
-
-function loadImportantDatesFromStorage() {
-    const storedDates = localStorage.getItem('importantDates');
-    if (storedDates) {
-        importantDates = JSON.parse(storedDates);
+async function downloadErrorLogs() {
+    try {
+        // Direct link to backend endpoint that serves the file
+        const downloadUrl = window.api.downloadErrorLogs(); 
+        window.open(downloadUrl, '_blank'); // Open in new tab to trigger download
+        showNotification("Error logs download initiated.");
+        await window.api.logActivity("Error logs downloaded.", 'logs_control');
+    } catch (error) {
+        console.error('Error downloading error logs:', error);
+        showError(`Failed to download error logs: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to download error logs: ${error.message}`, 'logs_control', error.stack);
     }
-    updateImportantDatesDisplay();
 }
 
-function saveClickCountToStorage() {
-    localStorage.setItem('mouseClickCount', clickCount);
-}
-
-function loadClickCountFromStorage() {
-    const storedClickCount = localStorage.getItem('mouseClickCount');
-    if (storedClickCount !== null) {
-        clickCount = parseInt(storedClickCount);
-    }
-    updateClickCountDisplay();
-}
-
-function saveErrorLogsToStorage() {
-    localStorage.setItem('errorLogs', JSON.stringify(errorLogs));
-}
-
-function loadErrorLogsFromStorage() {
-    const storedErrorLogs = localStorage.getItem('errorLogs');
-    if (storedErrorLogs) {
-        errorLogs = JSON.parse(storedErrorLogs);
-    }
-    updateErrorLogDisplay();
-}
-
-
-function updateLoginHistoryDisplay() {
+async function updateLoginHistoryDisplay(initialHistory = null) {
   const container = document.getElementById('loginHistoryList');
   if (!container) return;
   container.innerHTML = '';
 
-  loginHistory.slice(0, 10).forEach(entry => { 
+  let historyToDisplay = initialHistory;
+  if (!historyToDisplay) { // If not initial load, fetch fresh data
+      try {
+          historyToDisplay = await window.api.getLoginHistory();
+      } catch (error) {
+          console.error('Error fetching login history:', error);
+          showError(`Failed to load login history: ${error.message}`);
+          return;
+      }
+  }
+
+  historyToDisplay.slice(0, 10).forEach(entry => { 
     const logElement = document.createElement('div');
     const statusClass = entry.success ? 'success' : 'failed';
     logElement.className = `login-entry-container ${statusClass}`;
     logElement.innerHTML = `
       <div class="flex-grow">
         <span class="login-entry-status">${entry.success ? 'SUCCESS' : 'FAILED'}:</span> 
-        <span>User "${entry.username || 'unknown'}"</span>
+        <span>User "${entry.username_attempted || 'unknown'}"</span>
       </div>
-      <span class="login-entry-time">${new Date(entry.time).toLocaleString()}</span>
+      <span class="login-entry-time">${new Date(entry.timestamp).toLocaleString()}</span>
     `;
     container.appendChild(logElement);
   });
 }
 
-// New Important Dates functions
-function addImportantDate() {
+// Important Dates functions
+async function addImportantDate() {
     const dateInput = document.getElementById('importantDateDay').value;
     const timeInput = document.getElementById('importantDateTime').value;
     const eventInput = document.getElementById('importantDateEvent').value;
 
-    if (dateInput && timeInput && eventInput) {
-        const fullDate = `${dateInput}T${timeInput}`; // Format for Date object
-        const newDate = {
-            id: Date.now(),
-            datetime: new Date(fullDate).toISOString(),
-            event: eventInput
-        };
-        importantDates.unshift(newDate); // Add to the beginning
-        importantDates.sort((a, b) => new Date(a.datetime) - new Date(b.datetime)); // Keep sorted by date
-        saveImportantDatesToStorage();
-        updateImportantDatesDisplay();
-        logActivity(`Added important date: ${eventInput} on ${new Date(fullDate).toLocaleString()}`);
+    if (!dateInput || !timeInput || !eventInput) {
+        showError("Please fill in all important date fields.");
+        return;
+    }
+
+    try {
+        const fullDate = `${dateInput}T${timeInput}:00.000Z`; // Ensure ISO format with Z for UTC
+        await window.api.addImportantDate(fullDate, eventInput);
+        await updateImportantDatesDisplay(); // Refresh the list from backend
         showNotification("Important date added!");
+        await window.api.logActivity(`Added important date: ${eventInput} on ${new Date(fullDate).toLocaleString()}`, 'important_dates');
 
         // Clear inputs
         document.getElementById('importantDateDay').value = new Date().toISOString().split('T')[0];
-        document.getElementById('importantDateTime').value = new Date().toTimeString().slice(0,5);
+        document.getElementById('importantDateTime').value = "09:00";
         document.getElementById('importantDateEvent').value = '';
-    } else {
-        showError("Please fill in all important date fields.");
+    } catch (error) {
+        console.error('Error adding important date:', error);
+        showError(`Failed to add important date: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to add important date: ${error.message}`, 'important_dates', error.stack);
     }
 }
 
-function clearImportantDates() {
+async function clearImportantDates() {
     if (confirm("Are you sure you want to clear all important dates?")) {
-        importantDates = [];
-        saveImportantDatesToStorage();
-        updateImportantDatesDisplay();
-        logActivity("All important dates cleared.");
-        showNotification("All important dates cleared.");
+        try {
+            await window.api.clearImportantDates();
+            await updateImportantDatesDisplay([]); // Clear UI immediately
+            showNotification("All important dates cleared.");
+            await window.api.logActivity("All important dates cleared.", 'important_dates');
+        } catch (error) {
+            console.error('Error clearing important dates:', error);
+            showError(`Failed to clear important dates: ${error.message}`);
+            await window.api.logError(`Frontend: Failed to clear important dates: ${error.message}`, 'important_dates', error.stack);
+        }
     }
 }
 
-function updateImportantDatesDisplay() {
+async function updateImportantDatesDisplay(initialDates = null) {
     const container = document.getElementById('importantDatesList');
     if (!container) return;
     container.innerHTML = '';
 
-    importantDates.forEach(dateEntry => {
+    let datesToDisplay = initialDates;
+    if (!datesToDisplay) { // If not initial load, fetch fresh data
+        try {
+            datesToDisplay = await window.api.getImportantDates();
+        } catch (error) {
+            console.error('Error fetching important dates:', error);
+            showError(`Failed to load important dates: ${error.message}`);
+            return;
+        }
+    }
+    
+    // Sort by date/time ascending
+    datesToDisplay.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
+    datesToDisplay.forEach(dateEntry => {
         const entryElement = document.createElement('div');
         entryElement.className = 'important-date-item';
         const formattedDate = new Date(dateEntry.datetime).toLocaleString();
@@ -4074,70 +3379,108 @@ function updateImportantDatesDisplay() {
 }
 
 
-// New Mouse Clicker functions
-function incrementClickCounter() {
-    clickCount++;
-    updateClickCountDisplay();
-    saveClickCountToStorage();
-    logActivity('Mouse click incremented');
-}
-
-function resetClickCounter() {
-    if (confirm("Are you sure you want to reset the click counter?")) {
-        clickCount = 0;
-        updateClickCountDisplay();
-        saveClickCountToStorage();
-        logActivity('Mouse clicker reset');
-        showNotification("Click counter reset!");
+// Mouse Clicker functions
+async function incrementClickCounter() {
+    try {
+        const response = await window.api.incrementClickCount();
+        currentSessionUser.click_count = response.click_count; // Update local user object
+        await updateClickCountDisplay();
+        await window.api.logActivity('Mouse click incremented', 'mouse_clicker');
+    } catch (error) {
+        console.error('Error incrementing click counter:', error);
+        showError(`Failed to increment click counter: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to increment click counter: ${error.message}`, 'mouse_clicker', error.stack);
     }
 }
 
-function updateClickCountDisplay() {
+async function resetClickCounter() {
+    if (confirm("Are you sure you want to reset the click counter?")) {
+        try {
+            const response = await window.api.resetClickCount();
+            currentSessionUser.click_count = response.click_count; // Should be 0
+            await updateClickCountDisplay();
+            showNotification("Click counter reset!");
+            await window.api.logActivity('Mouse clicker reset', 'mouse_clicker');
+        } catch (error) {
+            console.error('Error resetting click counter:', error);
+            showError(`Failed to reset click counter: ${error.message}`);
+            await window.api.logError(`Frontend: Failed to reset click counter: ${error.message}`, 'mouse_clicker', error.stack);
+        }
+    }
+}
+
+async function updateClickCountDisplay(initialCount = null) {
     const display = document.getElementById('clickCountDisplay');
     if (display) {
-        display.textContent = clickCount;
+        let count = initialCount;
+        if (count === null && currentSessionUser) { // If not initial load, get from current session user or API
+            count = currentSessionUser.click_count;
+            if (count === undefined) { // Fallback if not loaded into user obj yet
+                 try {
+                     count = await window.api.getClickCount();
+                     currentSessionUser.click_count = count; // Cache it
+                 } catch (error) {
+                     console.error('Error fetching click count:', error);
+                     count = 0; // Default to 0 on error
+                 }
+            }
+        } else if (count === null) { // Before user session starts
+            count = 0;
+        }
+        display.textContent = count;
     }
 }
 
+// Stats functions
+async function updateStats() {
+  if (!currentSessionUser) return;
 
-function updateStats() {
-  document.getElementById('buttonPresses').textContent = stats.buttonPresses;
-  document.getElementById('toggleSwitches').textContent = stats.toggleSwitches;
-  document.getElementById('panelsOpened').textContent = stats.panelsOpened;
-  document.getElementById('panelsClosed').textContent = stats.panelsClosed;
-  document.getElementById('searchQueries').textContent = stats.searchQueries;
+  try {
+      const fetchedStats = await window.api.getUserStats();
+      currentSessionUser.stats = fetchedStats; // Update local user object
+
+      document.getElementById('buttonPresses').textContent = currentSessionUser.stats.buttonPresses;
+      document.getElementById('toggleSwitches').textContent = currentSessionUser.stats.toggleSwitches;
+      document.getElementById('panelsOpened').textContent = currentSessionUser.stats.panelsOpened;
+      document.getElementById('panelsClosed').textContent = currentSessionUser.stats.panelsClosed;
+      document.getElementById('searchQueries').textContent = currentSessionUser.stats.searchQueries;
+      // Session time is updated by startSessionTimer
+      document.getElementById('sessionTime').textContent = formatSecondsToHHMMSS(currentSessionUser.stats.sessionTime);
+
+  } catch (error) {
+      console.error('Error fetching user stats:', error);
+      showError(`Failed to load user stats: ${error.message}`);
+      await window.api.logError(`Frontend: Failed to fetch user stats: ${error.message}`, 'stats', error.stack);
+  }
 }
 
-function downloadActivityLogs() {
-  const data = {
-    activityLogs,
-    loginHistory, 
-    importantDates,
-    mouseClickCount: clickCount,
-    errorLogs,
-    stats,
-    timestamp: new Date().toISOString()
-  };
-  
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `activity_logs_${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  
-  stats.buttonPresses++;
-  logActivity('Activity logs downloaded');
-  showNotification('Activity logs downloaded!');
-  updateStats();
+function formatSecondsToHHMMSS(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function showStats() {
-  togglePanel('statsPanel');
-  
+
+async function downloadActivityLogs() {
+    try {
+        const downloadUrl = window.api.downloadActivityLogs(); 
+        window.open(downloadUrl, '_blank');
+        showNotification('Activity logs download initiated!');
+        await window.api.logActivity('Activity logs downloaded', 'logs_control');
+    } catch (error) {
+        console.error('Error downloading activity logs:', error);
+        showError(`Failed to download activity logs: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to download activity logs: ${error.message}`, 'logs_control', error.stack);
+    }
+}
+
+async function showStats() {
+  await togglePanel('statsPanel'); // Assuming this opens the modal
+  if (!document.getElementById('statsPanel').style.display === 'flex') return; // Only draw chart if panel is visible
+
+  await updateStats(); // Ensure latest stats are fetched
+
   // Create stats chart
   const ctx = document.getElementById('statsChart').getContext('2d');
   if (Chart.getChart(ctx)) {
@@ -4146,10 +3489,17 @@ function showStats() {
   new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Button Presses', 'Toggle Switches', 'Panels Opened', 'Panels Closed', 'Search Queries', 'Mouse Clicks'], // Added Mouse Clicks
+      labels: ['Button Presses', 'Toggle Switches', 'Panels Opened', 'Panels Closed', 'Search Queries', 'Mouse Clicks'],
       datasets: [{
-        data: [stats.buttonPresses, stats.toggleSwitches, stats.panelsOpened, stats.panelsClosed, stats.searchQueries, clickCount], // Included clickCount
-        backgroundColor: ['#ff4500', '#ff6b35', '#00ff41', '#ffaa00', '#0066cc', '#8800cc'] // Added a color
+        data: [
+            currentSessionUser.stats.buttonPresses, 
+            currentSessionUser.stats.toggleSwitches, 
+            currentSessionUser.stats.panelsOpened, 
+            currentSessionUser.stats.panelsClosed, 
+            currentSessionUser.stats.searchQueries, 
+            currentSessionUser.click_count // Use click_count from user object
+        ],
+        backgroundColor: ['#ff4500', '#ff6b35', '#00ff41', '#ffaa00', '#0066cc', '#8800cc']
       }]
     },
     options: {
@@ -4164,9 +3514,10 @@ function showStats() {
       }
     }
   });
+  await window.api.logActivity('Stats panel viewed', 'stats');
 }
 
-// Timer functions
+// Timer functions (client-side only for now, can add backend reminders later)
 function startStopwatch() {
   if (!isStopwatchRunning) {
     isStopwatchRunning = true;
@@ -4174,7 +3525,7 @@ function startStopwatch() {
       stopwatchTime++;
       updateStopwatchDisplay();
     }, 10);
-    logActivity('Stopwatch started');
+    await window.api.logActivity('Stopwatch started', 'timer');
   }
 }
 
@@ -4182,7 +3533,7 @@ function pauseStopwatch() {
   if (isStopwatchRunning) {
     isStopwatchRunning = false;
     clearInterval(stopwatchInterval);
-    logActivity('Stopwatch paused');
+    await window.api.logActivity('Stopwatch paused', 'timer');
   }
 }
 
@@ -4191,15 +3542,15 @@ function resetStopwatch() {
   clearInterval(stopwatchInterval);
   stopwatchTime = 0;
   updateStopwatchDisplay();
-  logActivity('Stopwatch reset');
+  await window.api.logActivity('Stopwatch reset', 'timer');
 }
 
 function updateStopwatchDisplay() {
-  const totalSeconds = Math.floor(stopwatchTime / 100);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const centiseconds = stopwatchTime % 100;
+  const totalCentiseconds = stopwatchTime;
+  const hours = Math.floor(totalCentiseconds / 360000);
+  const minutes = Math.floor((totalCentiseconds % 360000) / 6000);
+  const seconds = Math.floor((totalCentiseconds % 6000) / 100);
+  const centiseconds = totalCentiseconds % 100;
   
   document.getElementById('stopwatchDisplay').textContent = 
     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
@@ -4221,17 +3572,17 @@ function startTimer() {
       if (timerTime <= 0) {
         pauseTimer();
         showNotification('Timer finished!');
-        logActivity('Timer completed');
+        await window.api.logActivity('Timer completed', 'timer');
       }
     }, 1000);
-    logActivity('Timer started');
+    await window.api.logActivity('Timer started', 'timer');
   }
 }
 
 function pauseTimer() {
   isTimerRunning = false;
   clearInterval(timerInterval);
-  logActivity('Timer paused');
+  await window.api.logActivity('Timer paused', 'timer');
 }
 
 function resetTimer() {
@@ -4239,7 +3590,7 @@ function resetTimer() {
   clearInterval(timerInterval);
   timerTime = 0;
   updateTimerDisplay();
-  logActivity('Timer reset');
+  await window.api.logActivity('Timer reset', 'timer');
 }
 
 function updateTimerDisplay() {
@@ -4251,40 +3602,73 @@ function updateTimerDisplay() {
     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function addReminder() {
+async function addReminder() {
   const text = document.getElementById('reminderText').value;
   const time = document.getElementById('reminderTime').value;
   
-  if (text && time) {
-    const reminderTime = new Date(time);
-    const now = new Date();
-    
-    if (reminderTime > now) {
-      const timeout = reminderTime.getTime() - now.getTime();
+  if (!text || !time) {
+      showError('Please fill in both reminder text and time.');
+      return;
+  }
+
+  try {
+      const reminderTime = new Date(time);
+      const now = new Date();
       
-      setTimeout(() => {
-        showNotification(`Reminder: ${text}`);
-      }, timeout);
-      
-      const reminderElement = document.createElement('div');
-      reminderElement.className = 'p-2 bg-gray-700 rounded';
-      reminderElement.innerHTML = `
-        <div class="font-semibold">${text}</div>
-        <div class="text-sm text-gray-400">${reminderTime.toLocaleString()}</div>
-      `;
-      
-      document.getElementById('remindersList').appendChild(reminderElement);
-      
+      if (reminderTime <= now) {
+          showError('Reminder time must be in the future.');
+          return;
+      }
+
+      await window.api.addReminder(reminderTime.toISOString(), text);
+      await updateRemindersDisplay(); // Refresh from backend
+      showNotification(`Reminder set for ${reminderTime.toLocaleString()}`);
+      await window.api.logActivity(`Reminder set: ${text}`, 'timer');
+
       document.getElementById('reminderText').value = '';
       document.getElementById('reminderTime').value = '';
-      
-      logActivity(`Reminder set: ${text}`);
-    }
+
+      // Set local timeout for immediate notification, but backend is authoritative
+      const timeout = reminderTime.getTime() - now.getTime();
+      setTimeout(() => {
+          showNotification(`Reminder: ${text}`);
+      }, timeout);
+
+  } catch (error) {
+      console.error('Error adding reminder:', error);
+      showError(`Failed to add reminder: ${error.message}`);
+      await window.api.logError(`Frontend: Failed to add reminder: ${error.message}`, 'timer', error.stack);
   }
 }
 
+async function updateRemindersDisplay() {
+    const container = document.getElementById('remindersList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    try {
+        const reminders = await window.api.getReminders();
+        reminders.sort((a, b) => new Date(a.reminder_time) - new Date(b.reminder_time)); // Sort by time
+
+        reminders.forEach(reminder => {
+            const reminderElement = document.createElement('div');
+            reminderElement.className = 'p-2 bg-gray-700 rounded';
+            reminderElement.innerHTML = `
+                <div class="font-semibold">${reminder.text}</div>
+                <div class="text-sm text-gray-400">${new Date(reminder.reminder_time).toLocaleString()}</div>
+            `;
+            container.appendChild(reminderElement);
+        });
+    } catch (error) {
+        console.error('Error fetching reminders:', error);
+        showError(`Failed to load reminders: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to fetch reminders: ${error.message}`, 'timer', error.stack);
+    }
+}
+
+
 // Drawing tools
-function selectTool(button, tool) {
+async function selectTool(button, tool) {
   document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => btn.classList.remove('active'));
   button.classList.add('active');
   currentTool = tool;
@@ -4292,23 +3676,74 @@ function selectTool(button, tool) {
   const canvas = document.getElementById('drawingCanvas');
   canvas.style.cursor = tool === 'eraser' ? 'crosshair' : 'crosshair';
   
-  logActivity(`Drawing tool changed to: ${tool}`);
+  await window.api.logActivity(`Drawing tool changed to: ${tool}`, 'notes');
 }
 
-function clearCanvas() {
+async function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  logActivity('Canvas cleared');
+  // Also clear saved drawing data in backend
+  try {
+      await window.api.saveNotes(document.getElementById('textNotes').value, ''); // Clear drawing data
+      showNotification('Canvas cleared and saved.');
+      await window.api.logActivity('Canvas cleared', 'notes');
+  } catch (error) {
+      console.error('Error clearing canvas data in backend:', error);
+      showError(`Failed to clear canvas: ${error.message}`);
+      await window.api.logError(`Frontend: Failed to clear canvas data: ${error.message}`, 'notes', error.stack);
+  }
 }
 
-function saveCanvas() {
-  const link = document.createElement('a');
-  link.download = `drawing_${Date.now()}.png`;
-  link.href = canvas.toDataURL();
-  link.click();
-  logActivity('Canvas saved');
+async function saveCanvas() {
+    // Optionally trigger a download
+    const link = document.createElement('a');
+    link.download = `drawing_${Date.now()}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+
+    // Also save drawing data to backend
+    try {
+        await window.api.saveNotes(document.getElementById('textNotes').value, canvas.toDataURL());
+        showNotification('Drawing saved successfully!');
+        await window.api.logActivity('Drawing saved', 'notes');
+    } catch (error) {
+        console.error('Error saving drawing to backend:', error);
+        showError(`Failed to save drawing: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to save drawing: ${error.message}`, 'notes', error.stack);
+    }
 }
 
-// Calculator functions (still in code but not exposed via quickbar buttons)
+async function updateNotesDisplay(initialNotes = null) {
+    const textNotesElem = document.getElementById('textNotes');
+    const drawingCanvasElem = document.getElementById('drawingCanvas');
+
+    let notesData = initialNotes;
+    if (!notesData && currentSessionUser) { // If not initial load, fetch fresh data
+        try {
+            notesData = await window.api.getNotes();
+        } catch (error) {
+            console.error('Error fetching notes:', error);
+            showError(`Failed to load notes: ${error.message}`);
+            return;
+        }
+    }
+    
+    if (notesData) {
+        textNotesElem.value = notesData.text_content || '';
+        if (notesData.drawing_data && drawingCanvasElem) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, drawingCanvasElem.width, drawingCanvasElem.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = notesData.drawing_data;
+        } else {
+            ctx.clearRect(0, 0, drawingCanvasElem.width, drawingCanvasElem.height); // Clear if no data
+        }
+    }
+}
+
+
+// Calculator functions (client-side only for now)
 function appendToCalc(value) {
   const display = document.getElementById('calcDisplay');
   if (display.textContent === '0' && value !== '.') { 
@@ -4331,48 +3766,36 @@ function deleteLast() {
   }
 }
 
-function calculateResult() {
+async function calculateResult() {
   const display = document.getElementById('calcDisplay');
   try {
     const result = eval(display.textContent.replace('×', '*').replace('÷', '/')); 
     display.textContent = result;
-    logActivity(`Calculation performed: ${display.textContent} = ${result}`);
+    await window.api.logActivity(`Calculation performed: ${display.textContent} = ${result}`, 'calculator');
   } catch (error) {
     display.textContent = 'Error';
+    await window.api.logError(`Frontend: Calculator error: ${error.message}, Expression: ${display.textContent}`, 'calculator', error.stack);
   }
 }
 
-// Unit converter (still in code but not exposed via quickbar buttons)
-function updateConversionUnits() {
+// Unit converter (client-side only for now)
+async function updateConversionUnits() {
   const type = document.getElementById('conversionType').value;
   const fromUnit = document.getElementById('fromUnit');
   const toUnit = document.getElementById('toUnit');
   
   const units = {
     length: [
-      { value: 'm', text: 'Meters' },
-      { value: 'km', text: 'Kilometers' },
-      { value: 'cm', text: 'Centimeters' },
-      { value: 'mm', text: 'Millimeters' },
-      { value: 'in', text: 'Inches' },
-      { value: 'ft', text: 'Feet' }
+      { value: 'm', text: 'Meters' }, { value: 'km', text: 'Kilometers' }, { value: 'cm', text: 'Centimeters' }, { value: 'mm', text: 'Millimeters' }, { value: 'in', text: 'Inches' }, { value: 'ft', text: 'Feet' }
     ],
     weight: [
-      { value: 'kg', text: 'Kilograms' },
-      { value: 'g', text: 'Grams' },
-      { value: 'lb', text: 'Pounds' },
-      { value: 'oz', text: 'Ounces' }
+      { value: 'kg', text: 'Kilograms' }, { value: 'g', text: 'Grams' }, { value: 'lb', text: 'Pounds' }, { value: 'oz', text: 'Ounces' }
     ],
     temperature: [
-      { value: 'c', text: 'Celsius' },
-      { value: 'f', text: 'Fahrenheit' },
-      { value: 'k', text: 'Kelvin' }
+      { value: 'c', text: 'Celsius' }, { value: 'f', text: 'Fahrenheit' }, { value: 'k', text: 'Kelvin' }
     ],
     volume: [
-      { value: 'l', text: 'Liters' },
-      { value: 'ml', text: 'Milliliters' },
-      { value: 'gal', text: 'Gallons' },
-      { value: 'qt', text: 'Quarts' }
+        { value: 'l', text: 'Liters' }, { value: 'ml', text: 'Milliliters' }, { value: 'gal', text: 'Gallons' }, { value: 'qt', text: 'Quarts' }
     ]
   };
   
@@ -4384,9 +3807,10 @@ function updateConversionUnits() {
     toUnit.innerHTML += `<option value="${unit.value}">${unit.text}</option>`;
   });
   convertUnits(); 
+  await window.api.logActivity(`Conversion type changed to: ${type}`, 'converter');
 }
 
-function convertUnits() {
+async function convertUnits() {
   const fromValue = parseFloat(document.getElementById('fromValue').value);
   const fromUnit = document.getElementById('fromUnit').value;
   const toUnit = document.getElementById('toUnit').value;
@@ -4407,7 +3831,7 @@ function convertUnits() {
       'kg': 1000, 'g': 1, 'lb': 453.592, 'oz': 28.3495
     },
     temperature: { 
-    },
+    }, // Handled separately
     volume: { 
         'l': 1, 'ml': 0.001, 'gal': 3.78541, 'qt': 0.946353
     }
@@ -4431,18 +3855,57 @@ function convertUnits() {
   }
   
   document.getElementById('toValue').value = result.toFixed(6);
-  logActivity(`Unit converted: ${fromValue} ${fromUnit} to ${result.toFixed(6)} ${toUnit}`);
+  await window.api.logActivity(`Unit converted: ${fromValue} ${fromUnit} to ${result.toFixed(6)} ${toUnit}`, 'converter');
 }
+
+// Media Player (client-side only for now)
+async function loadMedia() {
+    const mediaUrlInput = document.getElementById('mediaUrl');
+    const mediaFrame = document.getElementById('mediaFrame');
+    const url = mediaUrlInput.value;
+
+    if (url) {
+        // Basic YouTube URL parsing (very simplistic, might need more robust regex)
+        let embedUrl = '';
+        if (url.includes('youtube.com/watch?v=')) {
+            const videoId = url.split('v=')[1].split('&')[0];
+            embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        } else if (url.includes('youtu.be/')) {
+            const videoId = url.split('youtu.be/')[1].split('?')[0];
+            embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        } else {
+            showError('Please enter a valid YouTube URL.');
+            return;
+        }
+        mediaFrame.src = embedUrl;
+        await window.api.logActivity(`Media loaded: ${embedUrl}`, 'media_player');
+    }
+}
+
 
 // Theme functions
-function toggleTheme() {
-  document.body.classList.toggle('light-theme');
-  isLightMode = document.body.classList.contains('light-theme');
-  logActivity('Theme toggled to ' + (isLightMode ? 'Light Mode' : 'Dark Mode'));
-  updateStatsChartTheme(); 
+async function toggleTheme() {
+    const newDarkModeStatus = document.body.classList.contains('light-theme'); // If light-theme is active, switching means dark mode will be false (or light true)
+    
+    document.body.classList.toggle('light-theme');
+    isLightMode = document.body.classList.contains('light-theme');
+    await window.api.logActivity('Theme toggled to ' + (isLightMode ? 'Light Mode' : 'Dark Mode'), 'settings');
+    await updateStatsChartTheme();
+
+    // Update backend settings
+    if (currentSessionUser) {
+        const updatedSettings = { ...currentSessionUser.settings, darkMode: !newDarkModeStatus };
+        try {
+            const response = await window.api.updateUserSettings(updatedSettings);
+            currentSessionUser.settings = response.settings; // Update local user object
+        } catch (error) {
+            console.error('Error updating theme setting in backend:', error);
+            await window.api.logError(`Frontend: Failed to update theme setting: ${error.message}`, 'settings', error.stack);
+        }
+    }
 }
 
-function applyAccentTheme(theme, event) {
+async function applyAccentTheme(theme, event) {
   const root = document.documentElement;
   
   const themes = {
@@ -4460,10 +3923,7 @@ function applyAccentTheme(theme, event) {
     root.style.setProperty('--accent-color', themes[theme].primary);
     root.style.setProperty('--accent-secondary', themes[theme].secondary);
     
-    // For light theme, update these too for a new accent for better visibility of success/error etc.
     if (document.body.classList.contains('light-theme')) {
-        // These are just example replacements, ideally you'd pick good contrasting colors per accent.
-        // For simplicity, reusing the accent color for notification borders/left-borders on specific items.
         root.style.setProperty('--success-color', themes[theme].primary); 
         root.style.setProperty('--error-color', themes[theme].primary);   
         root.style.setProperty('--warning-color', themes[theme].primary); 
@@ -4474,22 +3934,30 @@ function applyAccentTheme(theme, event) {
         root.style.setProperty('--warning-color', '#ffaa00');
     }
 
-
     document.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
-    event.target.classList.add('active'); 
+    // If an event is passed, mark that specific element active, otherwise find by theme.
+    if (event && event.target) {
+        event.target.classList.add('active'); 
+    } else {
+        const matchingThemeOption = document.querySelector(`.theme-option[onclick*="applyAccentTheme('${theme}')"]`);
+        if (matchingThemeOption) matchingThemeOption.classList.add('active');
+    }
     
-    logActivity(`Accent theme changed to: ${theme}`);
-    updateStatsChartTheme(); 
-  }
-}
+    await window.api.logActivity(`Accent theme changed to: ${theme}`, 'settings');
+    await updateStatsChartTheme(); 
 
-// Helper to get a contrasting color for notification icons (simplistic example)
-function getContrastColor(hexcolor) {
-    const r = parseInt(hexcolor.substr(1, 2), 16);
-    const g = parseInt(hexcolor.substr(3, 2), 16);
-    const b = parseInt(hexcolor.substr(5, 2), 16);
-    const y = (r * 299 + g * 587 + b * 114) / 1000;
-    return (y >= 128) ? '#000000' : '#FFFFFF'; // returns black or white
+    // Update backend settings
+    if (currentSessionUser) {
+        const updatedSettings = { ...currentSessionUser.settings, accentTheme: theme };
+        try {
+            const response = await window.api.updateUserSettings(updatedSettings);
+            currentSessionUser.settings = response.settings; // Update local user object
+        } catch (error) {
+            console.error('Error updating accent theme setting in backend:', error);
+            await window.api.logError(`Frontend: Failed to update accent theme: ${error.message}`, 'settings', error.stack);
+        }
+    }
+  }
 }
 
 function updateStatsChartTheme() {
@@ -4501,71 +3969,117 @@ function updateStatsChartTheme() {
 }
 
 
-function toggleSetting(toggle) {
-  toggle.classList.toggle('active');
-  stats.toggleSwitches++;
-  logActivity(`Setting toggled: ${toggle.previousElementSibling.textContent}`);
-  updateStats();
+async function toggleSetting(toggle) {
+  const settingKey = toggle.dataset.setting;
+  const newValue = !toggle.classList.contains('active'); // Toggling means it's the opposite of current state
+  toggle.classList.toggle('active', newValue); // Apply new state
+
+  if (currentSessionUser) {
+      const updatedSettings = { ...currentSessionUser.settings, [settingKey]: newValue };
+      try {
+          const response = await window.api.updateUserSettings(updatedSettings);
+          currentSessionUser.settings = response.settings; // Update local user object
+          await window.api.logActivity(`Setting toggled: ${settingKey} to ${newValue}`, 'settings');
+      } catch (error) {
+          console.error('Error updating setting:', error);
+          showError(`Failed to update setting: ${error.message}`);
+          await window.api.logError(`Frontend: Failed to update setting ${settingKey}: ${error.message}`, 'settings', error.stack);
+          // Revert UI if API fails
+          toggle.classList.toggle('active', !newValue);
+      }
+  }
+  await updateStats(); // Update stats in UI and backend
 }
 
 // Refresh functions
-function refreshFact() {
-  const facts = [
-    "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs that are over 3000 years old and still perfectly edible.",
-    "A group of flamingos is called a 'flamboyance'.",
-    "Bananas are berries, but strawberries aren't.",
-    "The shortest war in history lasted only 38-45 minutes.",
-    "A single cloud can weigh more than a million pounds."
-  ];
-  
-  document.getElementById('randomFact').textContent = facts[Math.floor(Math.random() * facts.length)];
-  logActivity('Random fact refreshed');
+async function refreshFact() {
+  try {
+      const globalData = await window.api.getGlobalData();
+      const facts = globalData.random_facts || ["Failed to load facts."];
+      document.getElementById('randomFact').textContent = facts[Math.floor(Math.random() * facts.length)];
+      await window.api.logActivity('Random fact refreshed', 'content_refresh');
+  } catch (error) {
+      console.error('Error refreshing fact:', error);
+      showError(`Failed to refresh fact: ${error.message}`);
+      document.getElementById('randomFact').textContent = "Failed to load fact.";
+      await window.api.logError(`Frontend: Failed to refresh fact: ${error.message}`, 'content_refresh', error.stack);
+  }
 }
 
-function refreshQuote() {
-  const quotes = [
-    "\"The only way to do great work is to love what you do.\" - Steve Jobs",
-    "\"Innovation distinguishes between a leader and a follower.\" - Steve Jobs",
-    "\"Life is what happens to you while you're busy making other plans.\" - John Lennon",
-    "\"The future belongs to those who believe in the beauty of their dreams.\" - Eleanor Roosevelt",
-    "\"It is during our darkest moments that we must focus to see the light.\" - Aristotle"
-  ];
-  
-  document.getElementById('dailyQuote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
-  logActivity('Daily quote refreshed');
+async function refreshQuote() {
+  try {
+      const globalData = await window.api.getGlobalData();
+      const quotes = globalData.daily_quotes || [{quote: "Failed to load quote.", author: "System"}];
+      const quote = quotes[Math.floor(Math.random() * quotes.length)];
+      document.getElementById('dailyQuote').textContent = `"${quote.quote || 'No quote available.'}" - ${quote.author || 'Unknown'}`;
+      await window.api.logActivity('Daily quote refreshed', 'content_refresh');
+  } catch (error) {
+      console.error('Error refreshing quote:', error);
+      showError(`Failed to refresh quote: ${error.message}`);
+      document.getElementById('dailyQuote').textContent = "Failed to load quote.";
+      await window.api.logError(`Frontend: Failed to refresh quote: ${error.message}`, 'content_refresh', error.stack);
+  }
 }
 
 function clearNotifications() {
   document.getElementById('notificationsList').innerHTML = '';
-  logActivity('Notifications cleared');
+  await window.api.logActivity('Notifications cleared (client-side)', 'ui_interaction');
 }
 
-function clearActivityLogs() {
+async function clearActivityLogs() {
   if (confirm("Are you sure you want to clear all activity logs?")) {
-    activityLogs = [];
-    updateActivityLogDisplay();
-    logActivity('Activity logs cleared');
+    try {
+        await window.api.clearActivityLogs();
+        await updateActivityLogDisplay([]); // Clear UI immediately
+        showNotification("Activity logs cleared.");
+        await window.api.logActivity('Activity logs cleared', 'logs_control');
+    } catch (error) {
+        console.error('Error clearing activity logs:', error);
+        showError(`Failed to clear activity logs: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to clear activity logs: ${error.message}`, 'logs_control', error.stack);
+    }
   }
 }
 
-function saveTextNotes() {
-  const notes = document.getElementById('textNotes').value;
-  localStorage.setItem('textNotes', notes);
-  showNotification('Notes saved successfully');
-  logActivity('Text notes saved');
+async function saveTextNotes() {
+  const textNotes = document.getElementById('textNotes').value;
+  const drawingData = canvas ? canvas.toDataURL() : ''; // Get current canvas state
+  try {
+      await window.api.saveNotes(textNotes, drawingData);
+      showNotification('Notes saved successfully!');
+      await window.api.logActivity('Text notes saved', 'notes');
+  } catch (error) {
+      console.error('Error saving notes:', error);
+      showError(`Failed to save notes: ${error.message}`);
+      await window.api.logError(`Frontend: Failed to save notes: ${error.message}`, 'notes', error.stack);
+  }
 }
 
-function clearTextNotes() {
+async function clearTextNotes() {
   if (confirm("Are you sure you want to clear your text notes?")) {
     document.getElementById('textNotes').value = '';
-    logActivity('Text notes cleared');
+    // Clear in backend
+    try {
+        await window.api.saveNotes('', canvas ? canvas.toDataURL() : ''); // Clear text content
+        showNotification('Text notes cleared.');
+        await window.api.logActivity('Text notes cleared', 'notes');
+    } catch (error) {
+        console.error('Error clearing text notes in backend:', error);
+        showError(`Failed to clear text notes: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to clear text notes: ${error.message}`, 'notes', error.stack);
+    }
   }
 }
 
-function showNotification(message) {
+function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
   notification.className = 'notification';
-  notification.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+  let icon = '<i class="fas fa-info-circle"></i>';
+  if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+  if (type === 'error') icon = '<i class="fas fa-times-circle"></i>';
+  if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle"></i>';
+
+  notification.innerHTML = `${icon} ${message}`;
   document.body.appendChild(notification);
   
   setTimeout(() => {
@@ -4573,16 +4087,18 @@ function showNotification(message) {
   }, 3000);
 }
 
-function logout() {
+async function logout() {
   if (confirm('Are you sure you want to logout?')) {
-    logActivity('System logged out');
-    location.reload();
+    sessionStorage.removeItem('token'); // Clear JWT
+    currentSessionUser = null; // Clear local user data
+    await window.api.logActivity('User logged out', 'auth');
+    location.reload(); // Reloads page, which will go back to login screen
   }
 }
 
 // New functions requested by user
-function takeScreenshot() {
-    html2canvas(document.body).then(function(canvas) {
+async function takeScreenshot() {
+    html2canvas(document.body).then(async function(canvas) {
         const link = document.createElement('a');
         link.download = `screenshot_${Date.now()}.png`;
         link.href = canvas.toDataURL('image/png');
@@ -4590,94 +4106,226 @@ function takeScreenshot() {
         link.click();
         document.body.removeChild(link);
         showNotification('Screenshot saved!');
-        logActivity('Screenshot taken');
-        stats.buttonPresses++;
-        updateStats();
+        await window.api.logActivity('Screenshot taken', 'ui_interaction');
+        currentSessionUser.stats.buttonPresses++; // Update local stats
+        await updateStats(); // Push to backend
+    }).catch(async error => {
+        console.error('Error taking screenshot:', error);
+        showError(`Failed to take screenshot: ${error.message}`);
+        await window.api.logError(`Frontend: Failed to take screenshot: ${error.message}`, 'ui_interaction', error.stack);
     });
 }
 
-function togglePanelsGridVisibility() {
+async function togglePanelsGridVisibility() {
     const panelsGrid = document.getElementById('panelsGrid');
     if (panelsGrid.style.display === 'none' || panelsGrid.style.opacity === '0') {
         panelsGrid.style.display = 'grid';
         panelsGrid.style.opacity = '1';
         showNotification('Sections are now visible.');
-        logActivity('Sections toggled ON');
+        await window.api.logActivity('Sections toggled ON', 'ui_interaction');
     } else {
         panelsGrid.style.opacity = '0'; 
         setTimeout(() => {
             panelsGrid.style.display = 'none';
         }, 300);
         showNotification('Sections are now hidden.');
-        logActivity('Sections toggled OFF');
+        await window.api.logActivity('Sections toggled OFF', 'ui_interaction');
     }
-    stats.buttonPresses++;
-    updateStats();
+    currentSessionUser.stats.buttonPresses++; // Update local stats
+    await updateStats(); // Push to backend
 }
 
 async function restartSystem() {
     if (confirm('Are you sure you want to restart the system? You will be logged out and all unsaved data will be lost.')) {
-        logActivity('System restarted');
-        const embeds = createEmbedsFromFields(
-            "⚠️ System Restart Initiated", 0xFFFF00, [
-                { name: "Triggered By", value: currentUser || "Unknown User (pre-login or guest)", inline: true },
-                { name: "Location", value: "Dashboard", inline: true },
-                { name: "Time", value: new Date().toLocaleString(), inline: false }
-            ]
-        );
-        await sendWebhook(webhooks.resetInformation, embeds); // Using Reset Information channel for restarts
-        localStorage.clear(); 
+        sessionStorage.removeItem('token'); // Clear JWT
+        currentSessionUser = null; // Clear local user data
+        // For a full system restart, you'd trigger an API endpoint, which then might restart the backend service.
+        // For now, client-side restart means clearing session and reloading.
+        await window.api.logActivity('System restarted (client-side)', 'system_control');
         location.reload(); 
     }
 }
 
+// Helper functions for populating static content from global data
+async function updateSystemUpdatesDisplay(updates) {
+    const container = document.getElementById('systemUpdatesList');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!updates || updates.length === 0) {
+        container.innerHTML = '<div class="system-update-item">No recent updates.</div>';
+        return;
+    }
+    updates.forEach(update => {
+        const item = document.createElement('div');
+        item.className = 'system-update-item';
+        item.textContent = update;
+        container.appendChild(item);
+    });
+}
+
+async function populateWifiInfo(wifiNetworks) {
+    const container = document.getElementById('wifiInfoBoard');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!wifiNetworks || wifiNetworks.length === 0) {
+        container.innerHTML = '<div class="text-popup-content"><p>No WiFi network information available.</p></div>';
+        return;
+    }
+    wifiNetworks.forEach(network => {
+        const card = document.createElement('div');
+        card.className = 'wifi-network-card';
+        card.innerHTML = `
+            <h4>${network.name || 'Unknown Network'}</h4>
+            <div><span>Network Name:</span> <span>${network.networkName || 'N/A'}</span></div>
+            <div><span>Wifi Level:</span> <span>${network.level || 'N/A'}</span></div>
+            <div><span>Wifi Security Type:</span> <span>${network.securityType || 'N/A'}</span></div>
+            <div><span>Wifi Encryption Type:</span> <span>${network.encryptionType || 'N/A'}</span></div>
+            <div><span>Hidden?:</span> <span>${network.hidden ? 'Yes' : 'No'}</span></div>
+            <div><span>Monitored?:</span> <span>${network.monitored || 'Unknown'}</span></div>
+            <div><span>Username:</span> <span>${network.username || 'Unknown'}</span></div>
+            <div><span>Password:</span> <span>${network.password || 'Unknown'}</span></div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+async function populateLinks(elementId, links, wrapperTag = 'div') {
+    const container = document.getElementById(elementId);
+    if (!container) return;
+    container.innerHTML = '';
+    if (!links || links.length === 0) {
+        container.innerHTML = `<${wrapperTag} class="text-secondary">No links available.</${wrapperTag}>`;
+        return;
+    }
+    links.forEach(link => {
+        if (link.url) { // Ensure URL exists
+            const linkElement = document.createElement('a');
+            linkElement.href = link.url;
+            linkElement.target = "_blank";
+            linkElement.className = 'quick-btn text-center flex-grow'; // Apply quick-btn styling
+            linkElement.innerHTML = `<i class="fas fa-external-link-alt"></i> ${link.name || link.url}`;
+            container.appendChild(linkElement);
+        }
+    });
+}
+
+async function populatePhoneDirectory(entries) {
+    const container = document.getElementById('phoneDirectoryContent');
+    if (!container) return;
+    container.innerHTML = '<h3>Teacher Directory</h3>';
+    if (!entries || entries.length === 0) {
+        container.innerHTML += '<p>No directory entries available.</p>';
+        return;
+    }
+    entries.forEach(entry => {
+        container.innerHTML += `<p><strong>${entry.name || 'N/A'}:</strong> ${entry.phone || 'N/A'}${entry.room ? ` (Room: ${entry.room})` : ''}${entry.email ? ` (Email: ${entry.email})` : ''}</p>`;
+    });
+}
+
+async function populateSchoolInfo(info) {
+    const container = document.getElementById('schoolInfoContent');
+    if (!container) return;
+    if (!info || Object.keys(info).length === 0) {
+        container.innerHTML = '<p>No school information available.</p>';
+        return;
+    }
+    container.innerHTML = `
+        <p><strong>School Name:</strong> ${info.name || 'N/A'}</p>
+        <p><strong>School Address:</strong> ${info.address || 'N/A'}</p>
+        <p><strong>School Phone:</strong> ${info.phone || 'N/A'}</p>
+        <p><strong>School Fax:</strong> ${info.fax || 'N/A'}</p>
+        <br>
+        <p><strong>School Principal:</strong> ${info.principalName || 'N/A'}</p>
+        <p><strong>Principal's Phone:</strong> ${info.principalPhone || 'N/A'}</p>
+        <p><strong>Principal's Email:</strong> ${info.principalEmail || 'N/A'}</p>
+        <br>
+        <p><strong>Assistant Principal:</strong> ${info.assistantPrincipalName || 'N/A'}</p>
+        <p><strong>Assistant Principal's Phone:</strong> ${info.assistantPrincipalPhone || 'N/A'}</p>
+        <p><strong>Assistant Principal's Email:</strong> ${info.assistantPrincipalEmail || 'N/A'}</p>
+    `;
+}
+
+async function populateBypassingTools(tools) {
+    // This is more complex as it involves existing sub-panels.
+    // Assuming 'tools' is an object like { bathroom: "text", wifi: "text" }
+    // Update the content of existing hidden divs
+    if (tools.bathroom) document.getElementById('bathroomBypassText').querySelector('p').textContent = tools.bathroom;
+    if (tools.wifi) document.getElementById('wifiBypassText').querySelector('p').textContent = tools.wifi;
+    if (tools.teacherMonitoring) document.getElementById('teacherMonitoringBypassText').querySelector('p').textContent = tools.teacherMonitoring;
+    // Add other coming soon as needed
+}
+
+async function populateKeyboardTricks(categories) {
+    const container = document.getElementById('keyboardTricksContent');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!categories || categories.length === 0) {
+        container.innerHTML = '<p>No keyboard tricks available.</p>';
+        return;
+    }
+    categories.forEach(cat => {
+        container.innerHTML += `<h3>${cat.category}</h3>`;
+        const ul = document.createElement('ul');
+        cat.tricks.forEach(trick => {
+            const li = document.createElement('li');
+            li.textContent = trick;
+            ul.appendChild(li);
+        });
+        container.appendChild(ul);
+    });
+}
+
 
 // Event listeners
-document.addEventListener('DOMContentLoaded', () => {
-  setupToggles();
+document.addEventListener('DOMContentLoaded', async () => {
+  setupToggles(); // Setup toggles (some will be controlled by fetched settings)
   
-  submitBtn.addEventListener('click', (e) => {
+  submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
-    stats.buttonPresses++;
-    attemptLogin();
+    if (currentSessionUser) currentSessionUser.stats.buttonPresses++;
+    await attemptLogin();
   });
 
-  resetBtn.addEventListener('click', resetCounter); // Event listener for the new reset button
+  resetBtn.addEventListener('click', resetCounter); 
   
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', async (e) => {
     if (e.key === 'Enter') {
         if (resetPopup.style.display === 'flex') { // If reset popup is visible
-            resetCounter();
+            await resetCounter();
         } else if (!document.getElementById('loginScreen').classList.contains('hidden')) { // If login screen is visible
-            attemptLogin();
+            await attemptLogin();
         }
     }
   });
   
-  document.getElementById('penColor').addEventListener('change', (e) => {
+  document.getElementById('penColor').addEventListener('change', async (e) => {
     currentColor = e.target.value;
+    await window.api.logActivity(`Pen color changed to: ${currentColor}`, 'notes');
   });
   
-  document.getElementById('penThickness').addEventListener('input', (e) => {
+  document.getElementById('penThickness').addEventListener('input', async (e) => {
     currentThickness = parseInt(e.target.value);
+    await window.api.logActivity(`Pen thickness changed to: ${currentThickness}`, 'notes');
   });
   
-  const savedNotes = localStorage.getItem('textNotes');
-  if (savedNotes) {
-    document.getElementById('textNotes').value = savedNotes;
-  }
+  // No initial load of saved notes from localStorage, will be fetched from API
+  // const savedNotes = localStorage.getItem('textNotes');
+  // if (savedNotes) {
+  //   document.getElementById('textNotes').value = savedNotes;
+  // }
   
-  document.addEventListener('click', (e) => {
-    if ((e.target.tagName === 'BUTTON' && !e.target.closest('.panel-controls') && !e.target.classList.contains('submit-btn')) || e.target.closest('.quick-btn') || e.target.closest('.main-menu-btn')) { // Added .main-menu-btn
-        stats.buttonPresses++;
-        updateStats();
+  document.addEventListener('click', async (e) => {
+    // Only count clicks on specific interactive elements if a user is logged in
+    if (currentSessionUser && ((e.target.tagName === 'BUTTON' && !e.target.closest('.panel-controls') && !e.target.classList.contains('submit-btn')) || e.target.closest('.quick-btn') || e.target.closest('.main-menu-btn'))) {
+        currentSessionUser.stats.buttonPresses++;
+        await updateStats(); // Update stats in UI and backend
     }
   });
+  
   // Set default values for Important Dates inputs (current date and a default time)
   const today = new Date();
   document.getElementById('importantDateDay').value = today.toISOString().split('T')[0];
-  document.getElementById('importantDateTime').value = "09:00"; // Default to 9 AM
-
+  document.getElementById('importantDateTime').value = "09:00"; 
 });
 </script>
 
