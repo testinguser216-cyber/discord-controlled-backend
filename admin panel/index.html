@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; }
+        .admin-login-box {
+            background: #1a1a1a;
+            border: 1px solid #007bff; /* Admin accent color */
+            box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
+        }
+        .admin-login-box h2 {
+            color: #007bff;
+        }
+        .admin-login-box input {
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+        }
+        .admin-login-box input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+        }
+        .admin-submit-btn {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+        }
+        .admin-submit-btn:hover {
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+        }
+        .message-success { color: #28a745; }
+        .message-error { color: #dc3545; }
+        /* Styles for the dashboard part */
+        .admin-dashboard { display: none; padding: 20px; background: #0a0a0a; color: white; min-height: 100vh; }
+        .admin-dashboard h1 { font-size: 2rem; color: #007bff; margin-bottom: 1rem; }
+        .admin-dashboard button { background: #007bff; color: white; padding: 8px 15px; border-radius: 5px; margin-right: 10px; margin-bottom: 10px; }
+        .admin-dashboard button:hover { background: #0056b3; }
+        .admin-section { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+    </style>
+</head>
+<body class="bg-gray-900 flex items-center justify-center min-h-screen">
+
+    <!-- Admin Login Screen -->
+    <div id="adminLoginScreen" class="admin-login-box p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h2 class="text-2xl font-bold mb-6 text-center"><i class="fas fa-user-shield"></i> Admin Panel Login</h2>
+        <form id="adminLoginForm" class="space-y-4">
+            <div>
+                <label for="adminUsername" class="block text-gray-300 text-sm font-bold mb-2">Username:</label>
+                <input type="text" id="adminUsername" name="username" class="shadow appearance-none rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter admin username" autocomplete="off">
+            </div>
+            <div>
+                <label for="adminPassword" class="block text-gray-300 text-sm font-bold mb-2">Password:</label>
+                <input type="password" id="adminPassword" name="password" class="shadow appearance-none rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter admin password" autocomplete="off">
+            </div>
+            <div>
+                <label for="adminUserID" class="block text-gray-300 text-sm font-bold mb-2">User ID:</label>
+                <input type="text" id="adminUserID" name="userID" class="shadow appearance-none rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter admin user ID" autocomplete="off">
+            </div>
+            <button type="submit" class="admin-submit-btn text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">Log In as Admin</button>
+        </form>
+        <div id="adminMessage" class="mt-4 text-center"></div>
+    </div>
+
+    <!-- Admin Dashboard (Initially Hidden) -->
+    <div id="adminDashboard" class="admin-dashboard">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-3xl font-bold"><i class="fas fa-solar-panel"></i> Admin Control Panel</h1>
+            <button id="adminLogoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+
+        <div class="admin-section">
+            <h2 class="text-xl font-semibold mb-3">System Announcement</h2>
+            <textarea id="announcementTextarea" class="w-full p-2 bg-gray-800 rounded text-white mb-2" rows="3" placeholder="Enter new announcement"></textarea>
+            <button id="updateAnnouncementBtn">Update Announcement</button>
+            <button id="getAnnouncementBtn">Get Current Announcement</button>
+            <div id="currentAnnouncementDisplay" class="mt-2 text-gray-400">Current: Loading...</div>
+        </div>
+
+        <div class="admin-section">
+            <h2 class="text-xl font-semibold mb-3">User Management</h2>
+            <input type="text" id="targetUserSearch" class="p-2 bg-gray-800 rounded text-white mb-2" placeholder="Search user by ID or Username">
+            <button id="searchUserBtn">Search User</button>
+            <div id="userSearchResult" class="mt-2 text-gray-300"></div>
+            
+            <div id="userDetailsActions" class="mt-4" style="display: none;">
+                <h3 class="text-lg font-medium mb-2">Actions for <span id="targetUsernameDisplay"></span></h3>
+                <button id="lockUserBtn">Lock User</button>
+                <button id="unlockUserBtn">Unlock User</button>
+                <button id="resetAttemptsBtn">Reset Login Attempts</button>
+                <button id="deleteUserBtn" class="bg-red-600 hover:bg-red-700">Delete User</button>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2 class="text-xl font-semibold mb-3">Global Logs (Last 10)</h2>
+            <div class="flex mb-2">
+                <button id="getAllActivityLogsBtn">Get All Activity Logs</button>
+                <button id="getAllErrorLogsBtn">Get All Error Logs</button>
+                <button id="getAllLoginHistoryBtn">Get All Login History</button>
+            </div>
+            <div id="globalLogsDisplay" class="mt-2 p-2 bg-gray-800 rounded max-h-60 overflow-y-auto text-sm"></div>
+            <div class="flex mt-2">
+                <button id="clearAllActivityLogsBtn" class="bg-red-600 hover:bg-red-700">Clear All Activity Logs</button>
+                <button id="clearAllErrorLogsBtn" class="bg-red-600 hover:bg-red-700">Clear All Error Logs</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // *** 🛑 YOU MUST REPLACE THIS WITH YOUR ACTUAL VERCEL BACKEND API URL 🛑 ***
+        // Example: 'https://discord-controlled-backend-xxxx.vercel.app/api'
+        const API_BASE_URL = 'YOUR_VERCEL_BACKEND_API_URL_HERE'; 
+
+        // --- Helper Functions for API Calls ---
+        const getAuthToken = () => sessionStorage.getItem('adminToken');
+        const adminFetch = async (endpoint, options = {}) => {
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('Not authenticated. Please log in.');
+            }
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers,
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers,
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    sessionStorage.removeItem('adminToken');
+                    alert('Session expired or unauthorized. Please log in again.');
+                    window.location.reload(); // Force reload to login screen
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: `Server error: ${response.statusText}` }));
+                    throw new Error(errorData.message || 'API request failed');
+                }
+                return response.json();
+            } catch (error) {
+                console.error('API Call Error:', error);
+                throw new Error(`Failed to connect to API or server error: ${error.message}`);
+            }
+        };
+
+        const api = {
+            // Auth & User Management
+            adminLogin: (username, password, userID_display) => fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, userID_display }),
+            }).then(res => {
+                if (!res.ok) throw new Error(res.statusText);
+                return res.json();
+            }),
+            getAdminProfile: () => adminFetch('/users/me'), // Fetches current admin's profile
+            
+            searchUser: (query) => adminFetch(`/admin/users/search?q=${encodeURIComponent(query)}`),
+            lockUser: (userId) => adminFetch(`/admin/users/${userId}/lock`, { method: 'POST' }),
+            unlockUser: (userId) => adminFetch(`/admin/users/${userId}/unlock`, { method: 'POST' }),
+            resetUserAttempts: (userId) => adminFetch(`/admin/users/${userId}/reset-attempts`, { method: 'POST' }),
+            deleteUser: (userId) => adminFetch(`/admin/users/${userId}`, { method: 'DELETE' }),
+
+            // Global Settings
+            getGlobalAnnouncement: () => adminFetch('/global/announcement'),
+            updateGlobalAnnouncement: (message) => adminFetch('/admin/global/announcement', {
+                method: 'PUT',
+                body: JSON.stringify({ announcement_text: message }),
+            }),
+
+            // Logging
+            getAllActivityLogs: () => adminFetch('/admin/activity-logs'),
+            getAllErrorLogs: () => adminFetch('/admin/error-logs'),
+            getAllLoginHistory: () => adminFetch('/admin/login-history'),
+            clearAllActivityLogs: () => adminFetch('/admin/activity-logs/clear-all', { method: 'DELETE' }),
+            clearAllErrorLogs: () => adminFetch('/admin/error-logs/clear-all', { method: 'DELETE' }),
+            // Note: clearing login history might be user-specific or admin-specific on backend
+        };
+
+        // --- DOM Elements ---
+        const adminLoginScreen = document.getElementById('adminLoginScreen');
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const adminMessage = document.getElementById('adminMessage');
+        const adminDashboard = document.getElementById('adminDashboard');
+        const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+
+        const announcementTextarea = document.getElementById('announcementTextarea');
+        const updateAnnouncementBtn = document.getElementById('updateAnnouncementBtn');
+        const getAnnouncementBtn = document.getElementById('getAnnouncementBtn');
+        const currentAnnouncementDisplay = document.getElementById('currentAnnouncementDisplay');
+
+        const targetUserSearch = document.getElementById('targetUserSearch');
+        const searchUserBtn = document.getElementById('searchUserBtn');
+        const userSearchResult = document.getElementById('userSearchResult');
+        const userDetailsActions = document.getElementById('userDetailsActions');
+        const targetUsernameDisplay = document.getElementById('targetUsernameDisplay');
+        const lockUserBtn = document.getElementById('lockUserBtn');
+        const unlockUserBtn = document.getElementById('unlockUserBtn');
+        const resetAttemptsBtn = document.getElementById('resetAttemptsBtn');
+        const deleteUserBtn = document.getElementById('deleteUserBtn');
+        
+        const getAllActivityLogsBtn = document.getElementById('getAllActivityLogsBtn');
+        const getAllErrorLogsBtn = document.getElementById('getAllErrorLogsBtn');
+        const getAllLoginHistoryBtn = document.getElementById('getAllLoginHistoryBtn');
+        const globalLogsDisplay = document.getElementById('globalLogsDisplay');
+        const clearAllActivityLogsBtn = document.getElementById('clearAllActivityLogsBtn');
+        const clearAllErrorLogsBtn = document.getElementById('clearAllErrorLogsBtn');
+
+
+        let currentAdminUser = null; // Store logged-in admin details
+        let currentTargetUser = null; // Store user details from search
+
+        // --- Functions ---
+        function showMessage(div, message, type = 'info') {
+            div.textContent = message;
+            div.className = `mt-4 text-center message-${type}`;
+        }
+
+        async function renderAdminDashboard() {
+            const token = getAuthToken();
+            if (token) {
+                try {
+                    currentAdminUser = await api.getAdminProfile(); // Verify token and get admin profile
+                    if (currentAdminUser.role !== 'admin') {
+                        throw new Error('Unauthorized role. Not an admin.');
+                    }
+                    adminLoginScreen.style.display = 'none';
+                    adminDashboard.style.display = 'block';
+                    await loadGlobalSettings();
+                    // Other initial dashboard loads
+                } catch (error) {
+                    console.error('Admin profile fetch failed:', error);
+                    showMessage(adminMessage, `Failed to load admin profile: ${error.message}. Please log in again.`, 'error');
+                    sessionStorage.removeItem('adminToken');
+                    adminLoginScreen.style.display = 'block';
+                    adminDashboard.style.display = 'none';
+                }
+            } else {
+                adminLoginScreen.style.display = 'block';
+                adminDashboard.style.display = 'none';
+            }
+        }
+
+        async function loadGlobalSettings() {
+            try {
+                const globalAnnouncement = await api.getGlobalAnnouncement();
+                announcementTextarea.value = globalAnnouncement.announcement_text || '';
+                currentAnnouncementDisplay.textContent = `Current: ${globalAnnouncement.announcement_text || 'No announcement set.'}`;
+            } catch (error) {
+                console.error('Failed to load global settings:', error);
+                showMessage(currentAnnouncementDisplay, `Error loading announcement: ${error.message}`, 'error');
+            }
+        }
+
+        // --- Event Listeners ---
+        adminLoginForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            const userID_display = document.getElementById('adminUserID').value;
+
+            if (API_BASE_URL === 'YOUR_VERCEL_BACKEND_API_URL_HERE' || !API_BASE_URL.includes('http')) {
+                showMessage(adminMessage, 'Error: API_BASE_URL is not configured. Please edit the script.', 'error');
+                return;
+            }
+
+            try {
+                const data = await api.adminLogin(username, password, userID_display);
+                if (data.role !== 'admin') { // Ensure only admins can access this panel
+                    throw new Error('User is not an admin.');
+                }
+                sessionStorage.setItem('adminToken', data.token);
+                showMessage(adminMessage, `Admin login successful! Welcome, ${data.name}.`, 'success');
+                await renderAdminDashboard();
+            } catch (error) {
+                showMessage(adminMessage, error.message || 'Admin login failed. Check credentials and ensure admin role.', 'error');
+                console.error('Admin login error:', error);
+            }
+        });
+
+        adminLogoutBtn.addEventListener('click', () => {
+            sessionStorage.removeItem('adminToken');
+            window.location.reload();
+        });
+
+        updateAnnouncementBtn.addEventListener('click', async () => {
+            const newAnnouncement = announcementTextarea.value;
+            try {
+                await api.updateGlobalAnnouncement(newAnnouncement);
+                showMessage(currentAnnouncementDisplay, 'Announcement updated successfully!', 'success');
+                currentAnnouncementDisplay.textContent = `Current: ${newAnnouncement}`;
+            } catch (error) {
+                showMessage(currentAnnouncementDisplay, `Failed to update announcement: ${error.message}`, 'error');
+                console.error('Update announcement error:', error);
+            }
+        });
+
+        getAnnouncementBtn.addEventListener('click', async () => {
+            await loadGlobalSettings(); // Reloads announcement
+        });
+
+        searchUserBtn.addEventListener('click', async () => {
+            const query = targetUserSearch.value.trim();
+            if (!query) {
+                showMessage(userSearchResult, 'Please enter a username or user ID to search.', 'error');
+                userDetailsActions.style.display = 'none';
+                return;
+            }
+            try {
+                const user = await api.searchUser(query); // Assumes backend has /admin/users/search endpoint
+                if (user) {
+                    currentTargetUser = user;
+                    showMessage(userSearchResult, `User found: ${user.name} (${user.username}, ID: ${user.userID_display}) - Role: ${user.role}. Locked: ${user.locked_until && new Date(user.locked_until) > new Date() ? 'Yes' : 'No'}`, 'info');
+                    targetUsernameDisplay.textContent = user.username;
+                    userDetailsActions.style.display = 'block';
+                    lockUserBtn.style.display = (user.locked_until && new Date(user.locked_until) > new Date()) ? 'none' : 'inline-block';
+                    unlockUserBtn.style.display = (user.locked_until && new Date(user.locked_until) > new Date()) ? 'inline-block' : 'none';
+                } else {
+                    showMessage(userSearchResult, 'User not found.', 'error');
+                    userDetailsActions.style.display = 'none';
+                    currentTargetUser = null;
+                }
+            } catch (error) {
+                showMessage(userSearchResult, `Error searching for user: ${error.message}`, 'error');
+                console.error('Search user error:', error);
+                userDetailsActions.style.display = 'none';
+            }
+        });
+
+        lockUserBtn.addEventListener('click', async () => {
+            if (!currentTargetUser || !confirm(`Are you sure you want to lock user ${currentTargetUser.username}?`)) return;
+            try {
+                await api.lockUser(currentTargetUser._id);
+                showMessage(userSearchResult, `User ${currentTargetUser.username} locked successfully!`, 'success');
+                searchUserBtn.click(); // Re-search to refresh status
+            } catch (error) {
+                showMessage(userSearchResult, `Failed to lock user: ${error.message}`, 'error');
+            }
+        });
+
+        unlockUserBtn.addEventListener('click', async () => {
+            if (!currentTargetUser || !confirm(`Are you sure you want to unlock user ${currentTargetUser.username}?`)) return;
+            try {
+                await api.unlockUser(currentTargetUser._id);
+                showMessage(userSearchResult, `User ${currentTargetUser.username} unlocked successfully!`, 'success');
+                searchUserBtn.click(); // Re-search to refresh status
+            } catch (error) {
+                showMessage(userSearchResult, `Failed to unlock user: ${error.message}`, 'error');
+            }
+        });
+        
+        resetAttemptsBtn.addEventListener('click', async () => {
+            if (!currentTargetUser || !confirm(`Are you sure you want to reset login attempts for user ${currentTargetUser.username}?`)) return;
+            try {
+                await api.resetUserAttempts(currentTargetUser._id);
+                showMessage(userSearchResult, `Login attempts for ${currentTargetUser.username} reset successfully!`, 'success');
+                searchUserBtn.click(); // Re-search to refresh status
+            } catch (error) {
+                showMessage(userSearchResult, `Failed to reset login attempts: ${error.message}`, 'error');
+            }
+        });
+
+        deleteUserBtn.addEventListener('click', async () => {
+            if (!currentTargetUser || !confirm(`WARNING: Are you sure you want to PERMANENTLY DELETE user ${currentTargetUser.username} and all their data? This cannot be undone!`)) return;
+            try {
+                await api.deleteUser(currentTargetUser._id);
+                showMessage(userSearchResult, `User ${currentTargetUser.username} and all their data deleted permanently.`, 'success');
+                userDetailsActions.style.display = 'none';
+                currentTargetUser = null;
+                targetUserSearch.value = '';
+            } catch (error) {
+                showMessage(userSearchResult, `Failed to delete user: ${error.message}`, 'error');
+            }
+        });
+
+
+        async function displayGlobalLogs(logType) {
+            globalLogsDisplay.innerHTML = '<p>Loading...</p>';
+            try {
+                let logs;
+                let title;
+                if (logType === 'activity') {
+                    logs = await api.getAllActivityLogs();
+                    title = "All Activity Logs";
+                } else if (logType === 'error') {
+                    logs = await api.getAllErrorLogs();
+                    title = "All Error Logs";
+                } else if (logType === 'login') {
+                    logs = await api.getAllLoginHistory();
+                    title = "All Login History";
+                } else {
+                    globalLogsDisplay.innerHTML = '<p>Invalid log type.</p>';
+                    return;
+                }
+
+                if (!logs || logs.length === 0) {
+                    globalLogsDisplay.innerHTML = `<h3 class="font-semibold mb-2">${title}</h3><p>No logs found.</p>`;
+                    return;
+                }
+
+                let html = `<h3 class="font-semibold mb-2">${title}</h3><ul class="list-disc pl-5">`;
+                logs.sort((a,b) => new Date(b.timestamp || b.createdAt) - new Date(a.timestamp || a.createdAt)).slice(0,10).forEach(log => {
+                    if (logType === 'activity') {
+                        html += `<li>${new Date(log.timestamp).toLocaleString()}: ${log.activity_description} (${log.context})</li>`;
+                    } else if (logType === 'error') {
+                        html += `<li>${new Date(log.timestamp).toLocaleString()} [${log.severity || 'ERROR'}]: ${log.message} (${log.context})</li>`;
+                    } else if (logType === 'login') {
+                        html += `<li>${new Date(log.timestamp).toLocaleString()}: ${log.username_attempted || 'Unknown'} - ${log.success ? 'SUCCESS' : 'FAILED'}</li>`;
+                    }
+                });
+                html += `</ul>`;
+                globalLogsDisplay.innerHTML = html;
+
+            } catch (error) {
+                globalLogsDisplay.innerHTML = `<p class="message-error">Error loading logs: ${error.message}</p>`;
+                console.error(`Error loading ${logType} logs:`, error);
+            }
+        }
+
+        getAllActivityLogsBtn.addEventListener('click', () => displayGlobalLogs('activity'));
+        getAllErrorLogsBtn.addEventListener('click', () => displayGlobalLogs('error'));
+        getAllLoginHistoryBtn.addEventListener('click', () => displayGlobalLogs('login'));
+
+        clearAllActivityLogsBtn.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to clear ALL activity logs for ALL users? This cannot be undone!')) return;
+            try {
+                await api.clearAllActivityLogs(); // Assumes backend has /admin/activity-logs/clear-all
+                showMessage(globalLogsDisplay, 'All activity logs cleared successfully!', 'success');
+                displayGlobalLogs('activity'); // Refresh display
+            } catch (error) {
+                showMessage(globalLogsDisplay, `Failed to clear all activity logs: ${error.message}`, 'error');
+            }
+        });
+        
+        clearAllErrorLogsBtn.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to clear ALL error logs for ALL users? This cannot be undone!')) return;
+            try {
+                await api.clearAllErrorLogs(); // Assumes backend has /admin/error-logs/clear-all
+                showMessage(globalLogsDisplay, 'All error logs cleared successfully!', 'success');
+                displayGlobalLogs('error'); // Refresh display
+            } catch (error) {
+                showMessage(globalLogsDisplay, `Failed to clear all error logs: ${error.message}`, 'error');
+            }
+        });
+
+
+        // Initial render check
+        renderAdminDashboard();
+    </script>
+</body>
+</html>
